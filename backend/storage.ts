@@ -1,9 +1,7 @@
-import { users, onboardingData, chatMessages, dailyMealPlans, dailyFeedback, progressTracking, type User, type InsertUser, type OnboardingData, type InsertOnboardingData, type ChatMessage, type InsertChatMessage, type DailyMealPlan, type InsertDailyMealPlan, type DailyFeedback, type InsertDailyFeedback, type ProgressTracking, type InsertProgressTracking, type IngredientRecommendation } from "../shared/schema";
+import { users, onboardingData, chatMessages, dailyMealPlans, dailyFeedback, progressTracking, type User, type InsertUser, type OnboardingData, type InsertOnboardingData, type ChatMessage, type InsertChatMessage, type DailyMealPlan, type InsertDailyMealPlan, type DailyFeedback, type InsertDailyFeedback, type ProgressTracking, type InsertProgressTracking } from "../shared/schema";
 import admin from "firebase-admin";
 import { getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import path from "path";
-import { fileURLToPath } from "url";
 
 export interface IStorage {
   // User management
@@ -35,13 +33,13 @@ export interface IStorage {
   getUserProgressHistory(userId: number, days: number): Promise<ProgressTracking[]>;
 }
 
-const serviceAccountPath = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../serviceAccountKey.json"
-);
 if (!getApps().length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccountPath),
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    }),
   });
 }
 
