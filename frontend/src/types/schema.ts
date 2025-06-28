@@ -33,4 +33,30 @@ export type RecommendationCard = FoodRecommendation | MovementRecommendation | E
 export interface ChatResponse {
   message: string;
   ingredients: RecommendationCard[];
+}
+
+export interface OnboardingData {
+  id?: number;
+  userId?: number;
+  name?: string;
+  age?: string;
+  height?: string;
+  weight?: string;
+  diet?: string;
+  symptoms?: string[];
+  goals?: string[];
+  lifestyle?: Record<string, any>;
+  medicalConditions?: string[];
+  medications?: string[];
+  allergies?: string[];
+  lastPeriodDate?: string;
+  cycleLength?: string;
+  periodLength?: string;
+  periodDescription?: string;
+  irregularPeriods?: boolean;
+  stressLevel?: string;
+  sleepHours?: string;
+  exerciseLevel?: string;
+  waterIntake?: string;
+  completedAt?: string;
 } 

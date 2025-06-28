@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../components/ui/checkbox';
 import { useToast } from '../hooks/use-toast';
 import { ArrowLeft, Save, User, Heart, Pill, AlertTriangle } from 'lucide-react';
-import type { OnboardingData } from '../../../shared/schema';
+import type { OnboardingData } from '@/types/schema';
 
 // Constants
 const SYMPTOM_OPTIONS = [/* ... */];
