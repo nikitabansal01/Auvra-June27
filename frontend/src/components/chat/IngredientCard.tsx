@@ -1,4 +1,4 @@
-import { type FoodRecommendation } from '@shared/schema';
+import { type FoodRecommendation } from '@/types/schema';
 
 interface IngredientCardProps {
   ingredient: FoodRecommendation;

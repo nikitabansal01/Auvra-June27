@@ -1,4 +1,4 @@
-import { type MovementRecommendation } from '@shared/schema';
+import { type MovementRecommendation } from '@/types/schema';
 
 interface ExerciseCardProps {
   exercise: MovementRecommendation;

@@ -15,7 +15,7 @@ import { EmotionCard } from '@/components/chat/EmotionCard';
 import { X } from 'lucide-react';
 
 import { MealPlanGenerator } from '@/components/MealPlanGenerator';
-import type { ChatResponse, RecommendationCard } from '@shared/schema';
+import type { ChatResponse, RecommendationCard } from '@/types/schema';
 
 interface Message {
   id: string;

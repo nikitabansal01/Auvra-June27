@@ -10,7 +10,6 @@ import OnboardingNew from "@/pages/OnboardingNew";
 import Dashboard from "@/pages/Dashboard";
 import Profile from "@/pages/Profile";
 import DailyPlanner from "@/pages/DailyPlanner";
-import EvaluationDashboard from "@/pages/EvaluationDashboard";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
@@ -46,7 +45,6 @@ function Router() {
       <Route path="/onboarding" component={OnboardingNew} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/daily-planner" component={DailyPlanner} />
-      <Route path="/evaluation" component={EvaluationDashboard} />
       <Route path="/profile" component={Profile} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
