@@ -1,5 +1,5 @@
 import { users, onboardingData, chatMessages, dailyMealPlans, dailyFeedback, progressTracking, type User, type InsertUser, type OnboardingData, type InsertOnboardingData, type ChatMessage, type InsertChatMessage, type DailyMealPlan, type InsertDailyMealPlan, type DailyFeedback, type InsertDailyFeedback, type ProgressTracking, type InsertProgressTracking } from "../shared/schema";
-import admin from "firebase-admin";
+import * as admin from "firebase-admin";
 import { getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
