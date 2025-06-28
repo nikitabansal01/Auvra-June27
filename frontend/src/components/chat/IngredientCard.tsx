@@ -1,7 +1,7 @@
-import { type IngredientRecommendation } from '@shared/schema';
+import { type FoodRecommendation } from '@shared/schema';
 
 interface IngredientCardProps {
-  ingredient: IngredientRecommendation;
+  ingredient: FoodRecommendation;
 }
 
 export function IngredientCard({ ingredient }: IngredientCardProps) {

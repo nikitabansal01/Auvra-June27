@@ -1,7 +1,7 @@
-import { type IngredientRecommendation } from '@shared/schema';
+import { type MovementRecommendation } from '@shared/schema';
 
 interface ExerciseCardProps {
-  exercise: IngredientRecommendation;
+  exercise: MovementRecommendation;
 }
 
 export function ExerciseCard({ exercise }: ExerciseCardProps) {
@@ -16,16 +16,16 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
           <p className="text-sm text-gray-600 mb-3">{exercise.description}</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
             <div className="bg-blue-50 p-2 rounded-lg">
-              <div className="font-medium text-blue-700 mb-1">🛋️ Lazy Way</div>
-              <div className="text-blue-600">{exercise.lazy}</div>
+              <div className="font-medium text-blue-700 mb-1">🧘 Gentle Way</div>
+              <div className="text-blue-600">{exercise.gentle}</div>
             </div>
             <div className="bg-orange-50 p-2 rounded-lg">
-              <div className="font-medium text-orange-700 mb-1">😋 Tasty Way</div>
-              <div className="text-orange-600">{exercise.tasty}</div>
+              <div className="font-medium text-orange-700 mb-1">🎉 Fun Way</div>
+              <div className="text-orange-600">{exercise.fun}</div>
             </div>
             <div className="bg-green-50 p-2 rounded-lg">
-              <div className="font-medium text-green-700 mb-1">🥗 Healthy Way</div>
-              <div className="text-green-600">{exercise.healthy}</div>
+              <div className="font-medium text-green-700 mb-1">💪 Strong Way</div>
+              <div className="text-green-600">{exercise.strong}</div>
             </div>
           </div>
         </div>
