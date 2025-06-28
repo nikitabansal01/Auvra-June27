@@ -3,6 +3,7 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 // Debug: Log all available environment variables
 console.log('All Vite Environment Variables:', import.meta.env);
+console.log('Checking for Firebase environment variables...');
 
 // Debug: Log Firebase config specifically
 const firebaseConfig = {
@@ -13,6 +14,15 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
+
+console.log('Firebase Config Values:', {
+  apiKey: firebaseConfig.apiKey ? 'SET' : 'MISSING',
+  authDomain: firebaseConfig.authDomain ? 'SET' : 'MISSING',
+  projectId: firebaseConfig.projectId ? 'SET' : 'MISSING',
+  storageBucket: firebaseConfig.storageBucket ? 'SET' : 'MISSING',
+  messagingSenderId: firebaseConfig.messagingSenderId ? 'SET' : 'MISSING',
+  appId: firebaseConfig.appId ? 'SET' : 'MISSING',
+});
 
 console.log('Firebase Config Object:', {
   ...firebaseConfig,
