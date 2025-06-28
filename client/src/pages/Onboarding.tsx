@@ -77,10 +77,23 @@ export default function Onboarding() {
 
   const handleSubmit = async () => {
     if (!token) return;
-
     setIsSubmitting(true);
     try {
-      await apiRequest('POST', '/api/onboarding', formData);
+      // Transform fields to match backend schema
+      const menstrualCycle = formData.menstrualCycle || {};
+      const payload = {
+        ...formData,
+        diet: Array.isArray(formData.diet) ? formData.diet[0] || '' : formData.diet,
+        stressLevel: Array.isArray(formData.stressLevel) ? formData.stressLevel[0] || '' : formData.stressLevel,
+        sleepHours: Array.isArray(formData.sleepHours) ? formData.sleepHours[0] || '' : formData.sleepHours,
+        exerciseLevel: Array.isArray(formData.exerciseLevel) ? formData.exerciseLevel[0] || '' : formData.exerciseLevel,
+        lastPeriodDate: menstrualCycle.lastPeriodDate || '',
+        cycleLength: Array.isArray(menstrualCycle.length) ? menstrualCycle.length[0] || '' : menstrualCycle.length || '',
+        periodLength: Array.isArray(menstrualCycle.periodLength) ? menstrualCycle.periodLength[0] || '' : menstrualCycle.periodLength || '',
+        irregularPeriods: menstrualCycle.irregularPeriods || false,
+      };
+      if ('menstrualCycle' in payload) delete (payload as any).menstrualCycle;
+      await apiRequest('POST', '/api/onboarding', payload);
       toast({
         title: "Profile Complete!",
         description: "Your health profile has been saved successfully.",

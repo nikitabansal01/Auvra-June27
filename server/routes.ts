@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertOnboardingSchema, insertChatMessageSchema, type IngredientRecommendation, type ChatResponse, type User } from "@shared/schema";
+import { insertUserSchema, insertOnboardingSchema, insertChatMessageSchema, type RecommendationCard, type ChatResponse, type User } from "@shared/schema";
 import { z } from "zod";
 import OpenAI from 'openai';
 import { researchService } from './research';
@@ -172,8 +172,8 @@ For specific sleep-supporting foods, ask about foods for better sleep or evening
 }
 
 // Extract foods from research data with improved parsing
-function extractFoodsFromResearch(researchMatches: any[], phase: string): IngredientRecommendation[] {
-  const foods: IngredientRecommendation[] = [];
+function extractFoodsFromResearch(researchMatches: any[], phase: string): RecommendationCard[] {
+  const foods: RecommendationCard[] = [];
   
   const commonFoodPatterns = [
     /\b(sesame|flax|pumpkin|sunflower)\s+seeds?\b/gi,
@@ -192,7 +192,7 @@ function extractFoodsFromResearch(researchMatches: any[], phase: string): Ingred
     commonFoodPatterns.forEach(pattern => {
       const matches = content.match(pattern);
       if (matches) {
-        matches.forEach(food => extractedFoods.add(food.toLowerCase()));
+        matches.forEach((food: string) => extractedFoods.add(food.toLowerCase()));
       }
     });
   });
@@ -209,62 +209,80 @@ function extractFoodsFromResearch(researchMatches: any[], phase: string): Ingred
 }
 
 // Get default foods for each phase when research extraction fails
-function getDefaultFoodsForPhase(phase: string): IngredientRecommendation[] {
-  const defaults: Record<string, IngredientRecommendation[]> = {
-    'Luteal Phase': [
-      {
-        name: "Sesame Seeds",
-        description: "Research shows lignans support progesterone production during luteal phase",
-        emoji: "🌱",
-        lazy: "Take 1 tbsp sesame seeds daily or sesame seed butter on toast",
-        tasty: "Sprinkle toasted sesame seeds on salads or make tahini smoothie bowls",
-        healthy: "Consume 1-2 tbsp raw sesame seeds daily with vitamin E-rich foods"
-      },
-      {
-        name: "Sunflower Seeds",
-        description: "Studies indicate vitamin E and selenium support luteal phase hormones",
-        emoji: "🌻",
-        lazy: "Snack on 1/4 cup roasted sunflower seeds or sunflower seed butter",
-        tasty: "Add sunflower seeds to homemade granola or trail mix",
-        healthy: "Eat 1-2 tbsp raw sunflower seeds daily during luteal phase"
-      },
-      {
-        name: "Leafy Greens",
-        description: "Research confirms magnesium reduces PMS symptoms and supports mood",
-        emoji: "🥬",
-        lazy: "Add pre-washed spinach to smoothies or grab bagged salad mixes",
-        tasty: "Make green smoothies with spinach, banana, and almond butter",
-        healthy: "Consume 2-3 cups dark leafy greens daily for 200mg+ magnesium"
-      }
-    ],
+function getDefaultFoodsForPhase(phase: string): RecommendationCard[] {
+  const defaults: Record<string, RecommendationCard[]> = {
     'Follicular Phase': [
       {
-        name: "Flax Seeds",
-        description: "Research indicates lignans support healthy estrogen metabolism during follicular phase",
+        type: 'food',
+        name: "Personalized Meal Planning",
+        description: "Get customized meal plans based on your health conditions and preferences",
+        emoji: "🍽️",
+        lazy: "Use our AI meal planner for quick, tailored recommendations",
+        tasty: "Explore diverse cuisines and flavors that support your health goals",
+        healthy: "Get evidence-based meal timing, portion guidance, and therapeutic food combinations"
+      }
+    ],
+    'Ovulatory Phase': [
+      {
+        type: 'food',
+        name: "Leafy Greens",
+        description: "Rich in folate, iron, and antioxidants to support hormone balance",
+        emoji: "🥬",
+        lazy: "Buy pre-washed spinach or kale for quick salads and smoothies",
+        tasty: "Sauté with garlic and olive oil, or blend into green smoothies",
+        healthy: "Aim for 2-3 cups daily, vary types (spinach, kale, arugula) for different nutrients"
+      },
+      {
+        type: 'food',
+        name: "Omega-3 Rich Fish",
+        description: "Supports hormone production and reduces inflammation",
+        emoji: "🐟",
+        lazy: "Choose canned salmon or sardines for quick protein",
+        tasty: "Grill salmon with herbs, or make tuna salad with avocado",
+        healthy: "Include 2-3 servings per week, prioritize wild-caught varieties"
+      },
+      {
+        type: 'food',
+        name: "Complex Carbohydrates",
+        description: "Provides steady energy and supports serotonin production",
         emoji: "🌾",
-        lazy: "Take 1 tbsp ground flaxseed daily mixed in water or yogurt",
-        tasty: "Add ground flax to smoothies, oatmeal, or homemade muffins",
-        healthy: "Consume 1-2 tbsp freshly ground flaxseeds daily for optimal lignan content"
+        lazy: "Use quinoa or brown rice from the freezer section",
+        tasty: "Make Buddha bowls with quinoa, roasted vegetables, and tahini dressing",
+        healthy: "Fill 1/4 of your plate with whole grains, avoid refined carbohydrates"
+      }
+    ],
+    'Luteal Phase': [
+      {
+        type: 'food',
+        name: "Dark Chocolate",
+        description: "Research shows magnesium and antioxidants support mood and reduce PMS symptoms",
+        emoji: "🍫",
+        lazy: "Choose 70%+ dark chocolate bars for quick magnesium boost",
+        tasty: "Make hot chocolate with dark cocoa powder and almond milk",
+        healthy: "Consume 1-2oz dark chocolate daily for magnesium and mood support"
       },
       {
-        name: "Pumpkin Seeds",
-        description: "Studies show zinc and iron support healthy follicle development and energy",
-        emoji: "🎃",
-        lazy: "Snack on 1/4 cup raw or roasted pumpkin seeds daily",
-        tasty: "Toast pumpkin seeds with sea salt and herbs, or add to trail mix",
-        healthy: "Eat 1-2 tbsp raw pumpkin seeds daily for zinc, iron, and magnesium"
+        type: 'food',
+        name: "Complex Carbohydrates",
+        description: "Studies confirm steady energy and serotonin support during luteal phase",
+        emoji: "🍠",
+        lazy: "Use sweet potatoes, quinoa, or brown rice from the freezer section",
+        tasty: "Make sweet potato toast, quinoa bowls, or brown rice stir-fries",
+        healthy: "Include 1/4 plate complex carbs to support serotonin and energy levels"
       },
       {
-        name: "Citrus Fruits",
-        description: "Research confirms vitamin C and folate support hormone production and energy",
-        emoji: "🍊",
-        lazy: "Eat 1-2 fresh oranges or grapefruits daily, or drink fresh citrus juice",
-        tasty: "Make citrus salads with orange, grapefruit, and fresh mint",
-        healthy: "Consume 2-3 servings of fresh citrus daily for vitamin C and folate"
+        type: 'food',
+        name: "Magnesium-Rich Foods",
+        description: "Research indicates magnesium reduces PMS symptoms and supports sleep",
+        emoji: "🥜",
+        lazy: "Snack on almonds, pumpkin seeds, or dark chocolate for magnesium",
+        tasty: "Make trail mix with nuts, seeds, and dark chocolate pieces",
+        healthy: "Aim for 300-400mg magnesium daily from food sources during luteal phase"
       }
     ],
     'Menstrual Phase': [
       {
+        type: 'food',
         name: "Dark Leafy Greens",
         description: "Research shows iron and folate help replenish nutrients lost during menstruation",
         emoji: "🥬",
@@ -273,6 +291,7 @@ function getDefaultFoodsForPhase(phase: string): IngredientRecommendation[] {
         healthy: "Consume 3-4 cups daily with vitamin C for enhanced iron absorption"
       },
       {
+        type: 'food',
         name: "Ginger Root",
         description: "Studies confirm anti-inflammatory properties reduce menstrual cramps and nausea",
         emoji: "🫚",
@@ -281,38 +300,13 @@ function getDefaultFoodsForPhase(phase: string): IngredientRecommendation[] {
         healthy: "Consume 1-2g fresh ginger daily as tea or in cooking for anti-inflammatory effects"
       },
       {
+        type: 'food',
         name: "Iron-Rich Foods",
         description: "Research indicates heme iron (meat) or plant iron (lentils) prevent anemia",
         emoji: "🥩",
         lazy: "Choose lean ground beef or canned lentils for quick meals",
         tasty: "Make beef stir-fry or hearty lentil curry with warming spices",
         healthy: "Include 3-4oz lean red meat or 1 cup cooked lentils daily during menstruation"
-      }
-    ],
-    'Ovulation Phase': [
-      {
-        name: "Avocados",
-        description: "Research shows healthy fats and folate support egg quality and hormone production",
-        emoji: "🥑",
-        lazy: "Add half an avocado to toast, salads, or smoothies daily",
-        tasty: "Make guacamole, avocado chocolate mousse, or creamy pasta sauces",
-        healthy: "Consume 1/2 to 1 whole avocado daily for monounsaturated fats and folate"
-      },
-      {
-        name: "Wild-Caught Salmon",
-        description: "Studies indicate omega-3 fatty acids support egg quality and reduce inflammation",
-        emoji: "🐟",
-        lazy: "Buy pre-cooked salmon or canned wild salmon for quick meals",
-        tasty: "Grill salmon with herbs, or make salmon salad with avocado",
-        healthy: "Include 3-4oz wild salmon 2-3 times per week for optimal omega-3 intake"
-      },
-      {
-        name: "Brazil Nuts",
-        description: "Research confirms selenium is crucial for egg protection and fertility support",
-        emoji: "🥜",
-        lazy: "Eat 2-3 Brazil nuts daily as a quick snack",
-        tasty: "Add chopped Brazil nuts to granola, yogurt, or energy balls",
-        healthy: "Consume 2-3 Brazil nuts daily for 200mcg selenium - optimal for fertility support"
       }
     ]
   };
@@ -351,23 +345,67 @@ function capitalizeWords(str: string): string {
 // Research-based cycle response with improved performance
 async function generateResearchBasedCycleResponse(message: string, onboardingData: any, openai: OpenAI): Promise<ChatResponse> {
   const lowerMessage = message.toLowerCase();
-  
+
   // Determine which cycle phase is being asked about
   let phase = '';
   if (lowerMessage.includes('luteal')) phase = 'Luteal Phase';
-  else if (lowerMessage.includes('follicular')) phase = 'Follicular Phase'; 
+  else if (lowerMessage.includes('follicular')) phase = 'Follicular Phase';
   else if (lowerMessage.includes('menstrual')) phase = 'Menstrual Phase';
-  else if (lowerMessage.includes('ovulation')) phase = 'Ovulation Phase';
+  else if (lowerMessage.includes('ovulation')) phase = 'Ovulatory Phase';
   else phase = 'Luteal Phase'; // default
-  
-  console.log('Processing', phase, 'query:', message);
 
-  // Use research-informed defaults directly for faster response
-  console.log('Using research-informed ingredient cards for', phase);
-  const researchFoods = getDefaultFoodsForPhase(phase);
+  // Detect if the user is asking about exercise, food, or both
+  const isExerciseQuery = lowerMessage.includes('exercise') || lowerMessage.includes('workout') || lowerMessage.includes('physical activity') || lowerMessage.includes('move my body') || lowerMessage.includes('fitness') || lowerMessage.includes('gym') || lowerMessage.includes('yoga') || lowerMessage.includes('cardio') || lowerMessage.includes('strength') || lowerMessage.includes('what should i do for exercise') || lowerMessage.includes('suggest exercise') || lowerMessage.includes('suggest a workout') || lowerMessage.includes('best exercise') || lowerMessage.includes('best workout');
+  const isFoodQuery = lowerMessage.includes('food') || lowerMessage.includes('eat') || lowerMessage.includes('nutrition') || lowerMessage.includes('diet') || lowerMessage.includes('ingredient') || lowerMessage.includes('meal') || lowerMessage.includes('recipe');
+
+  // Query research database for relevant articles
+  const researchQuery = `${phase} women's health` + (isExerciseQuery ? ' exercise physical activity movement' : '') + (isFoodQuery ? ' food nutrition diet' : '');
+  let researchMatches: any[] = [];
+  if (typeof researchService !== 'undefined' && researchService.searchWithSmartScraping) {
+    researchMatches = await researchService.searchWithSmartScraping(researchQuery, 3);
+  }
+
+  // Extract recommendations from research
+  let researchFoods: RecommendationCard[] = [];
+  let researchExercises: RecommendationCard[] = [];
+  if (isFoodQuery || !isExerciseQuery) {
+    researchFoods = extractFoodsFromResearch(researchMatches, phase);
+  }
+  if (isExerciseQuery) {
+    researchExercises = extractExercisesFromResearch(researchMatches, phase);
+  }
+
+  // Fallbacks if nothing found
+  if (isExerciseQuery && researchExercises.length === 0) {
+    // Use default for phase
+    const phaseKey = phase.toLowerCase().replace(' phase', '');
+    const defaultExercise = EXERCISE_RECOMMENDATIONS[phaseKey] ? [EXERCISE_RECOMMENDATIONS[phaseKey]] : [];
+    researchExercises = defaultExercise;
+  }
+  if ((isFoodQuery || !isExerciseQuery) && researchFoods.length === 0) {
+    researchFoods = getDefaultFoodsForPhase(phase);
+  }
+
+  // Compose message and ingredients
+  let responseMessage = '';
+  let ingredients: RecommendationCard[] = [];
+  if (isExerciseQuery && !isFoodQuery) {
+    responseMessage = `Here are research-backed exercise recommendations for your ${phase.toLowerCase()}:`;
+    ingredients = researchExercises;
+  } else if (isFoodQuery && !isExerciseQuery) {
+    responseMessage = `Here are the top ${researchFoods.length} research-backed foods for your ${phase.toLowerCase()}:`;
+    ingredients = researchFoods;
+  } else if (isExerciseQuery && isFoodQuery) {
+    responseMessage = `Here are research-backed food and exercise recommendations for your ${phase.toLowerCase()}:`;
+    ingredients = [...researchFoods, ...researchExercises];
+  } else {
+    responseMessage = `Here are the top ${researchFoods.length} research-backed foods for your ${phase.toLowerCase()}:`;
+    ingredients = researchFoods;
+  }
+
   return {
-    message: `Here are the top ${researchFoods.length} research-backed foods for your ${phase.toLowerCase()}:`,
-    ingredients: researchFoods
+    message: responseMessage,
+    ingredients
   };
 }
 
@@ -477,6 +515,483 @@ const DAILY_TIPS = [
   }
 ];
 
+// Exercise recommendations for each phase (now card-style)
+const EXERCISE_RECOMMENDATIONS: Record<string, RecommendationCard> = {
+  'menstrual': {
+    type: 'movement',
+    name: 'Gentle Movement',
+    description: 'Supports circulation, reduces cramps, and aids recovery during your period.',
+    emoji: '🧘‍♀️',
+    gentle: 'Do 5 minutes of gentle stretching or yoga at home.',
+    fun: 'Take a relaxing walk in nature or with a friend for fresh air and connection.',
+    strong: 'Aim for 20–30 minutes of gentle movement (yoga, walking, restorative Pilates) daily.'
+  },
+  'follicular': {
+    type: 'movement',
+    name: 'Strength Training',
+    description: 'Builds muscle and boosts metabolism, supporting hormone balance as energy rises.',
+    emoji: '🏋️‍♀️',
+    gentle: 'Do a 10-minute bodyweight routine at home (squats, push-ups, lunges).',
+    fun: 'Join a group fitness or dance class for extra motivation and fun.',
+    strong: 'Aim for 30–45 minutes of progressive strength training 3x per week.'
+  },
+  'ovulatory': {
+    type: 'movement',
+    name: 'High-Intensity Cardio',
+    description: 'Peak energy and strength—try challenging workouts or team sports.',
+    emoji: '🤸‍♀️',
+    gentle: 'Do a short HIIT workout video at home (10–15 minutes).',
+    fun: 'Play a team sport or join a spin/cycling class with friends.',
+    strong: 'Aim for 30 minutes of high-intensity cardio or power yoga 2–3x per week.'
+  },
+  'luteal': {
+    type: 'movement',
+    name: 'Mind-Body Movement',
+    description: 'Moderate, mood-boosting movement and stress reduction as energy dips.',
+    emoji: '🧘',
+    gentle: 'Do a 10-minute restorative yoga or stretching session.',
+    fun: 'Take a walk outdoors or try a gentle swim for relaxation.',
+    strong: 'Aim for 20–30 minutes of Pilates, yoga, or moderate cardio most days.'
+  }
+};
+
+// Calculate user's current menstrual phase
+function calculateCurrentPhase(onboardingData: any): { phase: string; phaseName: string; daysSinceLastPeriod?: number } {
+  const lastPeriodDate = onboardingData?.lastPeriodDate;
+  const irregularPeriods = onboardingData?.irregularPeriods;
+  const cycleLength = parseInt(onboardingData?.cycleLength) || 28;
+  
+  if (!lastPeriodDate || irregularPeriods) {
+    // Use lunar cycle for irregular periods or missing data
+    const lunarPhase = getLunarCyclePhase();
+    return { 
+      phase: lunarPhase, 
+      phaseName: getPhaseDisplayName(lunarPhase),
+      daysSinceLastPeriod: undefined 
+    };
+  }
+
+  const lastPeriod = new Date(lastPeriodDate);
+  const today = new Date();
+  const daysSinceLastPeriod = Math.floor((today.getTime() - lastPeriod.getTime()) / (1000 * 60 * 60 * 24));
+
+  // If period data is very old (>60 days), use lunar cycle
+  if (daysSinceLastPeriod > 60) {
+    const lunarPhase = getLunarCyclePhase();
+    return { 
+      phase: lunarPhase, 
+      phaseName: getPhaseDisplayName(lunarPhase),
+      daysSinceLastPeriod: undefined 
+    };
+  }
+
+  // Determine phase based on user's cycle length
+  const menstrualPhase = Math.min(daysSinceLastPeriod, 5);
+  const follicularPhase = Math.floor(cycleLength * 0.5);
+  const ovulatoryPhase = Math.floor(cycleLength * 0.55);
+  
+  let phase: string;
+  if (daysSinceLastPeriod <= menstrualPhase) {
+    phase = 'menstrual';
+  } else if (daysSinceLastPeriod <= follicularPhase) {
+    phase = 'follicular';
+  } else if (daysSinceLastPeriod <= ovulatoryPhase) {
+    phase = 'ovulatory';
+  } else {
+    phase = 'luteal';
+  }
+
+  return { 
+    phase, 
+    phaseName: getPhaseDisplayName(phase),
+    daysSinceLastPeriod 
+  };
+}
+
+function getLunarCyclePhase(): string {
+  // Calculate lunar phase based on current date
+  const today = new Date();
+  const lunarMonth = 29.53; // Average lunar month in days
+  const knownNewMoon = new Date('2024-01-11'); // Known new moon date
+  const daysSinceNewMoon = Math.floor((today.getTime() - knownNewMoon.getTime()) / (1000 * 60 * 60 * 24));
+  const lunarDay = daysSinceNewMoon % lunarMonth;
+  
+  // Map lunar phases to menstrual phases for women's natural rhythm
+  if (lunarDay <= 7) {
+    return 'menstrual'; // New moon = menstruation (rest and renewal)
+  } else if (lunarDay <= 14) {
+    return 'follicular'; // Waxing moon = follicular (energy building)
+  } else if (lunarDay <= 21) {
+    return 'ovulatory'; // Full moon = ovulation (peak energy)
+  } else {
+    return 'luteal'; // Waning moon = luteal (preparation and reflection)
+  }
+}
+
+function getPhaseDisplayName(phase: string): string {
+  const phaseNames = {
+    'menstrual': 'Menstrual Phase',
+    'follicular': 'Follicular Phase', 
+    'ovulatory': 'Ovulatory Phase',
+    'luteal': 'Luteal Phase'
+  };
+  return phaseNames[phase as keyof typeof phaseNames] || 'Current Phase';
+}
+
+// Generate response for current phase queries
+function generateCurrentPhaseResponse(phaseInfo: { phase: string; phaseName: string; daysSinceLastPeriod?: number }, onboardingData: any): ChatResponse {
+  const { phase, phaseName, daysSinceLastPeriod } = phaseInfo;
+  const irregularPeriods = onboardingData?.irregularPeriods;
+  
+  let message = `Based on your cycle data, you're currently in your **${phaseName}**. `;
+  
+  if (irregularPeriods || !daysSinceLastPeriod) {
+    message += `Since your periods are irregular, I'm using the lunar cycle to guide your nutrition recommendations. `;
+  } else {
+    message += `It's been ${daysSinceLastPeriod} days since your last period. `;
+  }
+
+  // Add phase-specific description
+  const phaseDescriptions = {
+    'menstrual': 'This is your rest and renewal phase. Focus on iron-rich foods, warming spices, and comfort foods to support your body during menstruation.',
+    'follicular': 'This is your energy-building phase. Your body is preparing for ovulation, so focus on fresh vegetables, lean proteins, and energizing foods.',
+    'ovulatory': 'This is your peak energy phase. Support ovulation with antioxidant-rich foods, zinc sources, and healthy fats.',
+    'luteal': 'This is your preparation phase. Support progesterone production and reduce PMS symptoms with magnesium-rich foods and complex carbohydrates.'
+  };
+
+  message += phaseDescriptions[phase as keyof typeof phaseDescriptions];
+
+  // Get food recommendations for this phase
+  const foods = getDefaultFoodsForPhase(phaseName);
+  
+  return {
+    message,
+    ingredients: foods
+  };
+}
+
+function generateCurrentPhaseExerciseResponse(phaseInfo: { phase: string; phaseName: string; daysSinceLastPeriod?: number }, onboardingData: any): ChatResponse {
+  const { phase, phaseName, daysSinceLastPeriod } = phaseInfo;
+  const irregularPeriods = onboardingData?.irregularPeriods;
+  const exerciseData = EXERCISE_RECOMMENDATIONS[phase] || EXERCISE_RECOMMENDATIONS['luteal'];
+
+  let message = `Based on your cycle data, you're currently in your **${exerciseData.name}**. `;
+  if (irregularPeriods || !daysSinceLastPeriod) {
+    message += `Since your periods are irregular, I'm using the lunar cycle to guide your exercise recommendations. `;
+  } else {
+    message += `It's been ${daysSinceLastPeriod} days since your last period. `;
+  }
+  message += exerciseData.description + '\n\n';
+  message += '**Recommended exercises for this phase:**\n';
+  message += `- ${exerciseData.lazy}\n`;
+  message += `- ${exerciseData.tasty}\n`;
+  message += `- ${exerciseData.strong}\n`;
+  return {
+    message,
+    ingredients: []
+  };
+}
+
+// Extract exercises from research data with improved parsing
+function extractExercisesFromResearch(researchMatches: any[], phase: string): RecommendationCard[] {
+  const exercises: RecommendationCard[] = [];
+  const commonExercisePatterns = [
+    /\byoga\b/gi,
+    /\bwalking?\b/gi,
+    /\bhiit\b/gi,
+    /\bstrength training\b/gi,
+    /\bweight(s|lifting)?\b/gi,
+    /\bcardio\b/gi,
+    /\bcycling\b/gi,
+    /\brunning\b/gi,
+    /\bswimming\b/gi,
+    /\bdancing\b/gi,
+    /\bpilates\b/gi,
+    /\bstretching\b/gi,
+    /\bmeditation\b/gi,
+    /\bbreathing\b/gi,
+    /\bwalk\b/gi,
+    /\bjog\b/gi,
+    /\bworkout\b/gi,
+    /\bexercise\b/gi,
+    /\bmovement\b/gi,
+    /\bactivity\b/gi,
+    /\bfitness\b/gi,
+    /\btraining\b/gi,
+    /\bsport\b/gi,
+    /\bflexibility\b/gi,
+    /\bmobility\b/gi,
+    /\bphysical\b/gi,
+    /\bactive\b/gi,
+    /\bmove\b/gi,
+    /\bbody\b/gi,
+    /\bmuscle\b/gi,
+    /\bbone\b/gi,
+    /\bjoint\b/gi
+  ];
+  
+  const extractedExercises = new Set<string>();
+  
+  researchMatches.forEach(match => {
+    const content = match.metadata?.content || '';
+    commonExercisePatterns.forEach(pattern => {
+      const matches = content.match(pattern);
+      if (matches) {
+        matches.forEach((exercise: string) => extractedExercises.add(exercise.toLowerCase()));
+      }
+    });
+  });
+  
+  // Convert extracted exercises to ingredient cards
+  extractedExercises.forEach(exercise => {
+    exercises.push({
+      name: capitalizeWords(exercise),
+      description: `Research-backed ${exercise} recommendation`,
+      emoji: '🏃‍♀️',
+      gentle: `Start with gentle ${exercise} for 5-10 minutes`,
+      fun: `Make ${exercise} social by doing it with friends or in a group`,
+      strong: `Challenge yourself with more intense ${exercise} sessions`
+    });
+  });
+  
+  return exercises.slice(0, 3); // Limit to 3 exercises
+}
+
+// Question classification system
+function classifyQuestion(message: string): 'advice' | 'cycle' | 'educational' {
+  const lowerMessage = message.toLowerCase();
+  
+  // 1. Advice questions (food, movement, emotion)
+  const adviceKeywords = [
+    // Food/Nutrition
+    'eat', 'food', 'diet', 'nutrition', 'meal', 'recipe', 'cook', 'supplement', 'ingredient', 
+    'consume', 'drink', 'take', 'add', 'help with', 'bloating', 'digestion', 'hunger', 
+    'craving', 'appetite', 'nourish', 'fuel', 'energy from food', 'what should i eat',
+    'recommend food', 'best food', 'food for', 'nutrition for', 'diet for',
+    // Movement/Exercise
+    'exercise', 'workout', 'movement', 'activity', 'fitness', 'training', 'sport', 'yoga', 
+    'pilates', 'dance', 'walk', 'run', 'jog', 'swim', 'bike', 'cycle', 'strength', 'cardio', 
+    'stretch', 'flexibility', 'mobility', 'physical', 'active', 'move', 'body', 'muscle', 
+    'bone', 'joint', 'what exercise', 'recommend exercise', 'best exercise', 'exercise for',
+    // Emotion/Mental Health
+    'emotion', 'mood', 'stress', 'anxiety', 'depression', 'happiness', 'joy', 'sadness', 
+    'anger', 'fear', 'worry', 'calm', 'peace', 'mindfulness', 'meditation', 'breathing', 
+    'relaxation', 'therapy', 'counseling', 'mental health', 'psychological', 'emotional', 
+    'feeling', 'wellbeing', 'self-care', 'gratitude', 'journaling', 'reflection',
+    'how to feel', 'manage stress', 'cope with', 'deal with', 'handle'
+  ];
+  
+  // 2. Cycle phase questions
+  const cycleKeywords = [
+    'cycle', 'phase', 'menstrual', 'period', 'ovulation', 'luteal', 'follicular', 
+    'menstruation', 'fertile', 'pms', 'premenstrual', 'postmenstrual', 'cycle day',
+    'what phase', 'which phase', 'current phase', 'my phase', 'cycle tracking',
+    'when ovulation', 'when period', 'cycle length', 'regular cycle', 'irregular cycle',
+    'moon phase', 'lunar', 'calendar', 'tracking', 'fertility', 'reproductive'
+  ];
+  
+  // Check for advice questions (highest priority)
+  const isAdviceQuestion = adviceKeywords.some(keyword => 
+    lowerMessage.includes(keyword) || 
+    lowerMessage.match(new RegExp(`\\b${keyword}\\b`, 'i'))
+  );
+  
+  // Check for cycle questions
+  const isCycleQuestion = cycleKeywords.some(keyword => 
+    lowerMessage.includes(keyword) || 
+    lowerMessage.match(new RegExp(`\\b${keyword}\\b`, 'i'))
+  );
+  
+  if (isAdviceQuestion) return 'advice';
+  if (isCycleQuestion) return 'cycle';
+  return 'educational';
+}
+
+// Determine cycle phase based on regular or irregular cycles
+function determineCyclePhase(onboardingData: any): { phase: string; phaseName: string; daysSinceLastPeriod?: number; moonPhase?: string } {
+  const lastPeriodDate = onboardingData?.lastPeriodDate;
+  const irregularPeriods = onboardingData?.irregularPeriods;
+  
+  if (irregularPeriods || !lastPeriodDate) {
+    // Use lunar cycle for irregular periods
+    const moonPhase = getLunarCyclePhase();
+    const lunarPhaseMap: Record<string, { phase: string; phaseName: string }> = {
+      'new': { phase: 'menstrual', phaseName: 'Menstrual Phase' },
+      'waxing_crescent': { phase: 'follicular', phaseName: 'Folstrual Phase' },
+      'first_quarter': { phase: 'follicular', phaseName: 'Folstrual Phase' },
+      'waxing_gibbous': { phase: 'follicular', phaseName: 'Folstrual Phase' },
+      'full': { phase: 'ovulatory', phaseName: 'Ovulatory Phase' },
+      'waning_gibbous': { phase: 'luteal', phaseName: 'Luteal Phase' },
+      'last_quarter': { phase: 'luteal', phaseName: 'Luteal Phase' },
+      'waning_crescent': { phase: 'luteal', phaseName: 'Luteal Phase' }
+    };
+    
+    const phaseInfo = lunarPhaseMap[moonPhase] || { phase: 'follicular', phaseName: 'Folstrual Phase' };
+    return { ...phaseInfo, moonPhase };
+  }
+  
+  // Use calendar-based tracking for regular periods
+  const today = new Date();
+  const lastPeriod = new Date(lastPeriodDate);
+  const daysSinceLastPeriod = Math.floor((today.getTime() - lastPeriod.getTime()) / (1000 * 60 * 60 * 24));
+  
+  let phase: string;
+  let phaseName: string;
+  
+  if (daysSinceLastPeriod <= 5) {
+    phase = 'menstrual';
+    phaseName = 'Menstrual Phase';
+  } else if (daysSinceLastPeriod <= 13) {
+    phase = 'follicular';
+    phaseName = 'Folstrual Phase';
+  } else if (daysSinceLastPeriod <= 16) {
+    phase = 'ovulatory';
+    phaseName = 'Ovulatory Phase';
+  } else {
+    phase = 'luteal';
+    phaseName = 'Luteal Phase';
+  }
+  
+  return { phase, phaseName, daysSinceLastPeriod };
+}
+
+// Generate cycle phase response with phase-specific recommendations
+async function generateCyclePhaseResponse(phaseInfo: any, onboardingData: any, openai: OpenAI): Promise<ChatResponse> {
+  const phaseData = {
+    menstrual: {
+      name: "Menstrual Phase",
+      description: "Rest and renewal - Support iron replenishment and comfort",
+      emoji: "🌑",
+      foods: ["Iron-rich leafy greens", "Warming ginger and turmeric", "Dark chocolate", "Red meat or lentils"],
+      movements: ["Gentle yoga", "Walking", "Stretching", "Restorative practices"],
+      emotions: ["Self-compassion", "Rest", "Reflection", "Gentle self-care"]
+    },
+    follicular: {
+      name: "Follicular Phase", 
+      description: "Energy building - Support estrogen with lignans and healthy fats",
+      emoji: "🌱",
+      foods: ["Fresh vegetables", "Lean proteins", "Sprouted foods", "Citrus fruits", "Fermented foods"],
+      movements: ["Cardio", "Strength training", "Dance", "High-energy activities"],
+      emotions: ["Creativity", "Social connection", "Planning", "Optimism"]
+    },
+    ovulatory: {
+      name: "Ovulatory Phase",
+      description: "Peak energy - Support ovulation with zinc and vitamin E", 
+      emoji: "🌕",
+      foods: ["Antioxidant berries", "Leafy greens", "Avocados", "Wild-caught fish", "Colorful vegetables"],
+      movements: ["HIIT", "Intense workouts", "Team sports", "Challenging activities"],
+      emotions: ["Confidence", "Leadership", "Social engagement", "High energy"]
+    },
+    luteal: {
+      name: "Luteal Phase",
+      description: "Preparation - Support progesterone and reduce PMS symptoms",
+      emoji: "🌙", 
+      foods: ["Complex carbs", "Magnesium-rich foods", "B-vitamins", "Calming herbs"],
+      movements: ["Gentle exercise", "Yoga", "Walking", "Mindful movement"],
+      emotions: ["Self-care", "Boundary setting", "Preparation", "Nurturing"]
+    }
+  };
+  
+  const currentPhase = phaseData[phaseInfo.phase as keyof typeof phaseData];
+  
+  const systemPrompt = `You are a women's health expert. The user is asking about their menstrual cycle phase.
+
+USER PROFILE:
+- Age: ${onboardingData?.age || 'Not specified'}
+- Diet: ${onboardingData?.diet || 'Not specified'}
+- Symptoms: ${(onboardingData?.symptoms || []).join(', ') || 'None specified'}
+- Goals: ${(onboardingData?.goals || []).join(', ') || 'None specified'}
+- Medical Conditions: ${(onboardingData?.medicalConditions || []).join(', ') || 'None specified'}
+- Lifestyle: ${JSON.stringify(onboardingData?.lifestyle || {})}
+
+CURRENT CYCLE PHASE: ${currentPhase.name}
+PHASE DESCRIPTION: ${currentPhase.description}
+-${phaseInfo.daysSinceLastPeriod !== undefined ? `DAYS SINCE LAST PERIOD: ${phaseInfo.daysSinceLastPeriod}` : 'USING LUNAR CYCLE TRACKING'}
+
+Provide a personalized response about their current cycle phase. Include:
+1. A welcoming message about their current phase
+2. What's happening in their body during this phase
+3. How to support their health during this phase
+4. Any specific considerations based on their health profile
+
+Format your response as bullet points using:
+- Use "•" for main bullet points
+- Use "  ◦" for sub-bullet points (indented)
+- Use "    ▪" for tertiary points (further indented)
+- Use "**bold text**" for emphasis
+- Use "*italic text*" for important terms
+
+Keep the response informative, supportive, and personalized to their health profile.`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: "What phase am I in and how should I support my health during this phase?" }
+    ],
+    temperature: 0.7,
+    max_tokens: 800,
+    response_format: { type: "text" },
+  });
+  
+  const content = completion.choices[0]?.message?.content || '';
+  
+  return {
+    message: content,
+    ingredients: []
+  };
+}
+
+// Generate educational response with bullet points
+async function generateEducationalResponse(message: string, onboardingData: any, openai: OpenAI): Promise<ChatResponse> {
+  const systemPrompt = `You are a women's health expert. Answer the user's educational question in a clear, concise manner.
+
+USER PROFILE:
+- Age: ${onboardingData?.age || 'Not specified'}
+- Diet: ${onboardingData?.diet || 'Not specified'}
+- Symptoms: ${(onboardingData?.symptoms || []).join(', ') || 'None specified'}
+- Goals: ${(onboardingData?.goals || []).join(', ') || 'None specified'}
+- Medical Conditions: ${(onboardingData?.medicalConditions || []).join(', ') || 'None specified'}
+- Lifestyle: ${JSON.stringify(onboardingData?.lifestyle || {})}
+
+INSTRUCTIONS:
+- Answer the question directly and clearly
+- Use simple, understandable language
+- Structure information logically
+- Personalize information based on their health profile when relevant
+- Keep responses concise but comprehensive
+- Use evidence-based information
+
+FORMATTING:
+- Use "•" for main bullet points
+- Use "  ◦" for sub-bullet points (indented)
+- Use "    ▪" for tertiary points (further indented)
+- Use "**bold text**" for emphasis
+- Use "*italic text*" for important terms
+- Do NOT use markdown formatting
+- Use regex-style formatting for better readability
+
+Focus on providing accurate, helpful information that directly answers their question.`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: message }
+    ],
+    temperature: 0.7,
+    max_tokens: 800,
+    response_format: { type: "text" },
+  });
+  
+  const content = completion.choices[0]?.message?.content || '';
+  
+  return {
+    message: content,
+    ingredients: []
+  };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -519,7 +1034,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             medications: [],
             allergies: [],
             lastPeriodDate: new Date().toISOString().split('T')[0],
-            cycleLength: '28'
+            cycleLength: '28',
+            medicalConditions: [],
+            periodLength: '',
+            irregularPeriods: false,
+            exerciseLevel: '',
+            completedAt: new Date(),
           });
         }
         req.user = demoUser;
@@ -578,6 +1098,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user profile with onboarding data
   app.get('/api/profile', requireAuth, async (req: any, res: any) => {
     try {
+      // If demo user, return demo profile and onboarding if not found
+      const authHeader = req.headers.authorization || '';
+      const token = authHeader.replace('Bearer ', '');
+      if (token === 'demo-token') {
+        // Use demo userId = 1
+        const demoUser = {
+          id: 1,
+          firebaseUid: 'demo',
+          email: 'demo@example.com',
+          name: 'Demo User',
+          profilePicture: null,
+          createdAt: new Date()
+        };
+        let onboarding = await storage.getOnboardingData(1);
+        if (!onboarding) {
+          onboarding = {
+            userId: 1,
+            age: '25',
+            diet: 'Mediterranean',
+            symptoms: ['irregular_periods', 'fatigue_and_low_energy'],
+            goals: ['regulate_menstrual_cycle', 'improve_energy_levels'],
+            lifestyle: { stressLevel: 'Moderate', sleepHours: '7-8' },
+            height: '165cm',
+            weight: '60kg',
+            stressLevel: 'Moderate',
+            sleepHours: '7-8',
+            waterIntake: '8 glasses',
+            medications: [],
+            allergies: [],
+            lastPeriodDate: new Date().toISOString().split('T')[0],
+            cycleLength: '28',
+            completedAt: new Date(),
+            id: 1
+          };
+        }
+        return res.json({ user: demoUser, onboarding });
+      }
+      // Otherwise, normal auth flow
       const onboardingData = await storage.getOnboardingData(req.user.id);
       res.json({ 
         user: req.user,
@@ -585,6 +1143,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: 'Failed to load profile' });
+    }
+  });
+
+  // Update user information
+  app.put('/api/users/update', requireAuth, async (req: any, res: any) => {
+    try {
+      const { name } = req.body;
+      
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ error: 'Name is required and must be a string' });
+      }
+
+      const updatedUser = await storage.updateUser(req.user.id, { name });
+      res.json({ success: true, user: updatedUser });
+    } catch (error) {
+      console.error('[USER UPDATE] Error:', error);
+      res.status(500).json({ error: 'Failed to update user' });
     }
   });
 
@@ -598,68 +1173,301 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Save onboarding data
-  app.post('/api/onboarding', requireAuth, async (req: any, res: any) => {
+  // Get current menstrual phase for health dashboard
+  app.get('/api/health/current-phase', requireAuth, async (req: any, res: any) => {
     try {
-      const data = insertOnboardingSchema.parse({
-        ...req.body,
-        userId: req.user.id
-      });
+      const onboardingData = await storage.getOnboardingData(req.user.id);
+      if (!onboardingData) {
+        return res.status(400).json({ error: 'No onboarding data found. Please complete onboarding first.' });
+      }
+
+      const phaseInfo = calculateCurrentPhase(onboardingData);
       
-      const onboarding = await storage.saveOnboardingData(data);
-      res.json({ success: true, data: onboarding });
+      // Get phase-specific data for display
+      const phaseData = {
+        menstrual: {
+          name: "Menstrual Phase",
+          description: "Rest and renewal - Support iron replenishment and comfort",
+          emoji: "🌑",
+          color: "red",
+          days: "1-5"
+        },
+        follicular: {
+          name: "Follicular Phase",
+          description: "Energy building - Support estrogen with lignans and healthy fats", 
+          emoji: "🌱",
+          color: "green",
+          days: "6-13"
+        },
+        ovulatory: {
+          name: "Ovulatory Phase",
+          description: "Peak energy - Support ovulation with zinc and vitamin E",
+          emoji: "🌕", 
+          color: "yellow",
+          days: "14-16"
+        },
+        luteal: {
+          name: "Luteal Phase",
+          description: "Preparation - Support progesterone and reduce PMS symptoms",
+          emoji: "🌙",
+          color: "purple", 
+          days: "17-28"
+        }
+      };
+
+      const currentPhaseData = phaseData[phaseInfo.phase as keyof typeof phaseData];
+      
+      res.json({
+        success: true,
+        phase: {
+          ...phaseInfo,
+          ...currentPhaseData,
+          isIrregular: onboardingData.irregularPeriods || !onboardingData.lastPeriodDate,
+          trackingMethod: onboardingData.irregularPeriods || !onboardingData.lastPeriodDate ? 'lunar' : 'calendar'
+        }
+      });
     } catch (error) {
-      res.status(400).json({ error: 'Failed to save onboarding data' });
+      console.error('Error getting current phase:', error);
+      res.status(500).json({ error: 'Failed to get current phase' });
+    }
+  });
+
+  // Save onboarding data
+  app.post('/api/onboarding', async (req: any, res: any, next: any) => {
+    try {
+      const authHeader = req.headers.authorization || '';
+      const token = authHeader.replace('Bearer ', '');
+      console.log('[ONBOARDING] Incoming token:', token);
+      console.log('[ONBOARDING] Incoming payload:', req.body);
+      if (token === 'demo-token') {
+        // Ensure demo user exists
+        let demoUser = await storage.getUserByFirebaseUid('demo');
+        if (!demoUser) {
+          demoUser = await storage.createUser({
+            firebaseUid: 'demo',
+            email: 'demo@example.com',
+            name: 'Demo User'
+          });
+        }
+        // Use a fixed demo userId for demo onboarding
+        const demoUserId = demoUser.id || 1;
+        let data;
+        try {
+          data = insertOnboardingSchema.parse({
+            ...req.body,
+            userId: demoUserId
+          });
+        } catch (err) {
+          let details = 'Unknown error';
+          if (typeof err === 'object' && err !== null) {
+            if ('errors' in err) details = (err as any).errors;
+            else if ('message' in err) details = (err as any).message;
+          }
+          console.error('[ONBOARDING] Validation error:', err);
+          return res.status(400).json({ error: 'Invalid onboarding payload', details });
+        }
+        const onboarding = await storage.saveOnboardingData(data);
+        return res.json({ success: true, data: onboarding });
+      }
+      // Otherwise, require authentication
+      requireAuth(req, res, async () => {
+        let data;
+        try {
+          data = insertOnboardingSchema.parse({
+            ...req.body,
+            userId: req.user.id
+          });
+        } catch (err) {
+          let details = 'Unknown error';
+          if (typeof err === 'object' && err !== null) {
+            if ('errors' in err) details = (err as any).errors;
+            else if ('message' in err) details = (err as any).message;
+          }
+          console.error('[ONBOARDING] Validation error:', err);
+          return res.status(400).json({ error: 'Invalid onboarding payload', details });
+        }
+        const onboarding = await storage.saveOnboardingData(data);
+        res.json({ success: true, data: onboarding });
+      });
+    } catch (error) {
+      let details = 'Unknown error';
+      if (typeof error === 'object' && error !== null && 'message' in error) details = (error as any).message;
+      console.error('[ONBOARDING] Unexpected error:', error);
+      res.status(400).json({ error: 'Failed to save onboarding data', details });
     }
   });
 
   // Chat endpoint
   app.post('/api/chat', requireAuth, async (req: any, res: any) => {
     try {
-      const { message } = req.body;
-      
+      const { message, currentPhase } = req.body;
+      const token = req.headers.authorization?.replace('Bearer ', '');
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: 'Message is required' });
       }
-
       const onboardingData = await storage.getOnboardingData(req.user.id);
-      
-      // Check if this is a luteal phase query that should use demo response with ingredient cards
-      const lowerMessage = message.toLowerCase();
-      const isLutealPhaseQuery = lowerMessage.includes('luteal') || lowerMessage.includes('luteal phase');
-      const isFollicularPhaseQuery = lowerMessage.includes('follicular') || lowerMessage.includes('follicular phase');
-      const isMenstrualPhaseQuery = lowerMessage.includes('menstrual') || lowerMessage.includes('menstrual phase');
-      const isOvulationPhaseQuery = lowerMessage.includes('ovulation') || lowerMessage.includes('ovulation phase');
-      
-      let response;
-      
-      // Use research-based response for cycle phase queries
-      if (isLutealPhaseQuery || isFollicularPhaseQuery || isMenstrualPhaseQuery || isOvulationPhaseQuery) {
-        response = await generateResearchBasedCycleResponse(message, onboardingData, openai);
-      } else {
-        // Try ChatGPT with fast timeout, fallback to demo if needed
-        try {
-          response = await Promise.race([
-            generateChatGPTResponse(openai, message, onboardingData),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
-          ]) as ChatResponse;
-        } catch (error) {
-          console.error('ChatGPT API failed, using demo response:', error);
-          response = generateDemoResponse(message, onboardingData);
-        }
+      if (!onboardingData) {
+        return res.status(400).json({ error: 'No onboarding data found. Please complete onboarding first.' });
+      }
+
+      // Classify the question type
+      const questionType = classifyQuestion(message);
+      console.log('[CHAT] Question classified as:', questionType);
+
+      // 1. Query Pinecone for relevant research using the user's question and health profile
+      const userProfileContext = `User Profile:\n- Age: ${onboardingData?.age || 'Not specified'}\n- Diet: ${onboardingData?.diet || 'Not specified'}\n- Symptoms: ${(onboardingData?.symptoms || []).join(', ') || 'None specified'}\n- Goals: ${(onboardingData?.goals || []).join(', ') || 'None specified'}\n- Medical Conditions: ${(onboardingData?.medicalConditions || []).join(', ') || 'None specified'}\n- Lifestyle: ${JSON.stringify(onboardingData?.lifestyle || {})}`;
+      const researchQuery = `${message} ${userProfileContext}`;
+      let researchMatches = [];
+      if (typeof researchService !== 'undefined' && researchService.searchWithSmartScraping) {
+        researchMatches = await researchService.searchWithSmartScraping(researchQuery, 3);
+      }
+      // 2. Extract food and exercise mentions from research
+      const foodsFromResearch = extractFoodsFromResearch(researchMatches, '');
+      const exercisesFromResearch = extractExercisesFromResearch(researchMatches, '');
+      // 3. Send question, health profile, and research context to OpenAI for synthesis
+      const researchContext = researchMatches.map(m => m.metadata?.content).filter(Boolean).join('\n---\n').slice(0, 4000); // limit context size
+
+      let chatResponse: ChatResponse;
+
+      // Route to appropriate response generator based on question type
+      switch (questionType) {
+        case 'advice':
+          // Use card-based response for food, movement, emotion questions
+          const systemPrompt = `You are a women's health expert. Use the user's health profile and the following research context to answer their question.
+
+${userProfileContext}
+
+RESEARCH CONTEXT:
+${researchContext}
+
+Always answer in this JSON format:
+{
+  "message": "A helpful summary for the user.",
+  "ingredients": [
+    // For food:
+    {
+      "type": "food",
+      "name": "Name of food",
+      "description": "Brief benefit or reason",
+      "emoji": "Emoji symbol",
+      "lazy": "The laziest way to implement this advice",
+      "tasty": "The most enjoyable or social way",
+      "healthy": "The optimal, most beneficial way"
+    },
+    // For movement/exercise:
+    {
+      "type": "movement",
+      "name": "Name of movement or exercise (e.g. Yoga, Walking, HIIT, Dance, etc.)",
+      "description": "Brief benefit or reason",
+      "emoji": "Emoji symbol",
+      "gentle": "Gentle way to do this movement",
+      "fun": "Fun or social way to do this movement",
+      "strong": "Strong or challenging way to do this movement"
+    },
+    // For emotions:
+    {
+      "type": "emotion",
+      "name": "Name of emotion practice (e.g. Meditation, Journaling, Gratitude, etc.)",
+      "description": "Brief benefit or reason",
+      "emoji": "Emoji symbol",
+      "chill": "Chill way to do this practice",
+      "creative": "Creative or expressive way to do this practice",
+      "heartfelt": "Heart-felt or deeply connecting way to do this practice"
+    }
+  ]
+}
+
+If you have multiple types, include all relevant cards in the ingredients array. Only use evidence-based advice from the research context or your expert knowledge if research is lacking. Personalize the advice for the user's profile.`;
+
+          const completion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: message }
+            ],
+            temperature: 0.7,
+            max_tokens: 1200,
+            response_format: { type: "json_object" },
+          });
+          
+          const content = completion.choices[0]?.message?.content;
+          if (!content) throw new Error('No OpenAI response');
+          
+          const parsed = JSON.parse(content);
+          const validatedIngredients = (parsed.ingredients || []).map((ing: any) => {
+            if (ing.type === 'food') {
+              return {
+                type: 'food',
+                name: ing.name || 'Unknown',
+                description: ing.description || '',
+                emoji: ing.emoji || '🌿',
+                lazy: ing.lazy || '',
+                tasty: ing.tasty || '',
+                healthy: ing.healthy || ''
+              };
+            } else if (ing.type === 'movement') {
+              return {
+                type: 'movement',
+                name: ing.name || 'Unknown',
+                description: ing.description || '',
+                emoji: ing.emoji || '🏃‍♀️',
+                gentle: ing.gentle || '',
+                fun: ing.fun || '',
+                strong: ing.strong || ''
+              };
+            } else if (ing.type === 'emotion') {
+              return {
+                type: 'emotion',
+                name: ing.name || 'Unknown',
+                description: ing.description || '',
+                emoji: ing.emoji || '💖',
+                chill: ing.chill || '',
+                creative: ing.creative || '',
+                heartfelt: ing.heartfelt || ''
+              };
+            } else {
+              return ing;
+            }
+          });
+          
+          chatResponse = {
+            message: parsed.message || '',
+            ingredients: validatedIngredients
+          };
+          break;
+
+        case 'cycle':
+          // Use cycle phase response
+          // Use current phase from frontend if provided, otherwise calculate it
+          const phaseInfo = currentPhase ? {
+            phase: currentPhase.phase,
+            phaseName: currentPhase.phaseName,
+            daysSinceLastPeriod: currentPhase.daysSinceLastPeriod
+          } : calculateCurrentPhase(onboardingData);
+          chatResponse = await generateCyclePhaseResponse(phaseInfo, onboardingData, openai);
+          break;
+
+        case 'educational':
+          // Use educational response with bullet points
+          chatResponse = await generateEducationalResponse(message, onboardingData, openai);
+          break;
+
+        default:
+          // Fallback to educational response
+          chatResponse = await generateEducationalResponse(message, onboardingData, openai);
       }
 
       await storage.saveChatMessage({
         userId: req.user.id,
         message,
-        response: response.message,
-        ingredients: response.ingredients
+        response: chatResponse.message,
+        ingredients: chatResponse.ingredients
       });
-
-      res.json(response);
+      res.json(chatResponse);
     } catch (error) {
-      console.error('Chat error:', error);
-      res.status(500).json({ error: 'Failed to process chat message' });
+      let details = 'Unknown error';
+      if (typeof error === 'object' && error !== null && 'message' in error) details = (error as any).message;
+      res.status(500).json({ error: 'Failed to process chat message', details });
     }
   });
 
@@ -811,7 +1619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Daily meal plan endpoint
   app.post('/api/nutrition/meal-plan', requireAuth, async (req: any, res: any) => {
     try {
-      const { cuisinePreference = 'mediterranean' } = req.body;
+      const { cuisinePreference = 'mediterranean', dietPreference, foodAllergies } = req.body;
 
       if (!cuisinePreference) {
         return res.status(400).json({ error: 'Cuisine preference is required' });
@@ -824,14 +1632,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Complete onboarding first to get personalized meal plans' });
       }
 
-      // Extract health conditions from user profile
+      // Merge dietPreference and foodAllergies into userProfile context
       const healthConditions = nutritionistService.extractHealthConditions(onboardingData);
-      
-      // Generate personalized meal plan
+      const userProfile = {
+        ...onboardingData,
+        ...(dietPreference && { diet: dietPreference }),
+        ...(foodAllergies && { foodAllergies }),
+      };
       const mealPlan = await nutritionistService.generateMealPlan(
         healthConditions,
         cuisinePreference,
-        onboardingData
+        userProfile
       );
 
       // Generate shopping list
@@ -857,7 +1668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Weekly meal plan endpoint
   app.post('/api/nutrition/meal-plan/weekly', requireAuth, async (req: any, res: any) => {
     try {
-      const { cuisinePreference = 'mediterranean' } = req.body;
+      const { cuisinePreference = 'mediterranean', dietPreference, foodAllergies } = req.body;
 
       if (!cuisinePreference) {
         return res.status(400).json({ error: 'Cuisine preference is required' });
@@ -870,11 +1681,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const healthConditions = nutritionistService.extractHealthConditions(onboardingData);
-      
+      const userProfile = {
+        ...onboardingData,
+        ...(dietPreference && { diet: dietPreference }),
+        ...(foodAllergies && { foodAllergies }),
+      };
       const weeklyPlan = await nutritionistService.generateWeeklyMealPlan(
         healthConditions,
         cuisinePreference,
-        onboardingData
+        userProfile
       );
 
       const shoppingList = nutritionistService.generateWeeklyShoppingList(weeklyPlan.days);
@@ -899,7 +1714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Monthly meal plan endpoint
   app.post('/api/nutrition/meal-plan/monthly', requireAuth, async (req: any, res: any) => {
     try {
-      const { cuisinePreference = 'mediterranean' } = req.body;
+      const { cuisinePreference = 'mediterranean', dietPreference, foodAllergies } = req.body;
 
       if (!cuisinePreference) {
         return res.status(400).json({ error: 'Cuisine preference is required' });
@@ -912,11 +1727,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const healthConditions = nutritionistService.extractHealthConditions(onboardingData);
-      
+      const userProfile = {
+        ...onboardingData,
+        ...(dietPreference && { diet: dietPreference }),
+        ...(foodAllergies && { foodAllergies }),
+      };
       const monthlyPlan = await nutritionistService.generateMonthlyMealPlan(
         healthConditions,
         cuisinePreference,
-        onboardingData
+        userProfile
       );
 
       const shoppingList = nutritionistService.generateMonthlyShoppingList(monthlyPlan.weeks);

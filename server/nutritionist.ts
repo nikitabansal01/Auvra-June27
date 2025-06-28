@@ -526,7 +526,10 @@ class NutritionistService {
     // Build comprehensive nutritional requirements
     const nutritionalFocus = conditions.flatMap(c => c.dietary_focus);
     const includeIngredients = conditions.flatMap(c => c.foods_to_include);
-    const avoidIngredients = conditions.flatMap(c => c.foods_to_avoid);
+    let avoidIngredients = conditions.flatMap(c => c.foods_to_avoid);
+    if (userProfile.foodAllergies && Array.isArray(userProfile.foodAllergies)) {
+      avoidIngredients = avoidIngredients.concat(userProfile.foodAllergies);
+    }
     const timingConsiderations = conditions.flatMap(c => c.meal_timing_considerations);
 
     const systemPrompt = `You are an expert nutritionist specializing in women's health conditions. Create a personalized daily meal plan with menstrual cycle phase-specific recommendations.
@@ -546,7 +549,9 @@ SEED CYCLING INCORPORATION METHODS:
 - Healthy: ${phaseData.healthy_incorporation.join(' | ')}
 
 FOODS TO EMPHASIZE: ${includeIngredients.concat(phaseData.supporting_foods).join(', ')}
-FOODS TO AVOID/LIMIT: ${avoidIngredients.join(', ')}
+- FOODS TO AVOID/LIMIT: ${avoidIngredients.join(', ')}
+${userProfile.diet ? `\nDIET PREFERENCE: ${userProfile.diet}` : ''}
+${userProfile.foodAllergies && userProfile.foodAllergies.length ? `\nFOOD ALLERGIES: ${userProfile.foodAllergies.join(', ')}` : ''}
 
 CUISINE ELEMENTS TO INCLUDE:
 - Common ingredients: ${cuisine.common_ingredients.join(', ')}

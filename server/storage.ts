@@ -1,12 +1,16 @@
 import { users, onboardingData, chatMessages, dailyMealPlans, dailyFeedback, progressTracking, type User, type InsertUser, type OnboardingData, type InsertOnboardingData, type ChatMessage, type InsertChatMessage, type DailyMealPlan, type InsertDailyMealPlan, type DailyFeedback, type InsertDailyFeedback, type ProgressTracking, type InsertProgressTracking, type IngredientRecommendation } from "@shared/schema";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
+import admin from "firebase-admin";
+import { getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import path from "path";
+import { fileURLToPath } from "url";
 
 export interface IStorage {
   // User management
   getUser(id: number): Promise<User | undefined>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, updates: Partial<User>): Promise<User>;
 
   // Onboarding
   getOnboardingData(userId: number): Promise<OnboardingData | undefined>;
@@ -31,264 +35,139 @@ export interface IStorage {
   getUserProgressHistory(userId: number, days: number): Promise<ProgressTracking[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private onboardingData: Map<number, OnboardingData>;
-  private chatMessages: Map<number, ChatMessage[]>;
-  private dailyMealPlans: Map<string, DailyMealPlan>;
-  private dailyFeedback: Map<string, DailyFeedback>;
-  private progressTracking: Map<string, ProgressTracking>;
-  private currentUserId: number;
-  private currentOnboardingId: number;
-  private currentChatId: number;
-  private currentMealPlanId: number;
-  private currentFeedbackId: number;
-  private currentProgressId: number;
+const serviceAccountPath = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../serviceAccountKey.json"
+);
+if (!getApps().length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccountPath),
+  });
+}
 
-  constructor() {
-    this.users = new Map();
-    this.onboardingData = new Map();
-    this.chatMessages = new Map();
-    this.dailyMealPlans = new Map();
-    this.dailyFeedback = new Map();
-    this.progressTracking = new Map();
-    this.currentUserId = 1;
-    this.currentOnboardingId = 1;
-    this.currentChatId = 1;
-    this.currentMealPlanId = 1;
-    this.currentFeedbackId = 1;
-    this.currentProgressId = 1;
-  }
+const db = getFirestore();
 
+export class FirestoreStorage implements IStorage {
+  // User management (Firestore implementation)
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const doc = await db.collection("users").doc(String(id)).get();
+    if (!doc.exists) return undefined;
+    const data = doc.data();
+    if (data && !data.id) data.id = id;
+    return data as User;
   }
-
   async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.firebaseUid === firebaseUid,
-    );
+    const snapshot = await db.collection("users").where("firebaseUid", "==", firebaseUid).limit(1).get();
+    if (snapshot.empty) return undefined;
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+    if (data && !data.id) data.id = Number(doc.id);
+    return data as User;
+  }
+  async createUser(user: InsertUser): Promise<User> {
+    // Find the max numeric ID in users collection (simulate auto-increment)
+    const snapshot = await db.collection("users").orderBy("id", "desc").limit(1).get();
+    let newId = 1;
+    if (!snapshot.empty) {
+      const maxUser = snapshot.docs[0].data();
+      newId = (maxUser.id || 0) + 1;
+    }
+    const userData = { ...user, id: newId, createdAt: new Date() };
+    await db.collection("users").doc(String(newId)).set(userData);
+    return userData as User;
+  }
+  async updateUser(id: number, updates: Partial<User>): Promise<User> {
+    const doc = await db.collection("users").doc(String(id)).get();
+    if (!doc.exists) throw new Error("User not found");
+    const data = doc.data() as User;
+    const updatedData = { ...data, ...updates };
+    await db.collection("users").doc(String(id)).set(updatedData);
+    return updatedData as User;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { 
-      ...insertUser, 
-      id,
-      profilePicture: insertUser.profilePicture || null,
-      createdAt: new Date(),
-    };
-    this.users.set(id, user);
-    return user;
-  }
-
+  // Onboarding
   async getOnboardingData(userId: number): Promise<OnboardingData | undefined> {
-    return this.onboardingData.get(userId);
+    const id = typeof userId === 'string' ? Number(userId) : userId;
+    console.log('[FirestoreStorage] getOnboardingData for userId:', id);
+    const doc = await db.collection("onboarding").doc(String(id)).get();
+    if (!doc.exists) {
+      console.warn('[FirestoreStorage] No onboarding data found for userId:', id);
+      return undefined;
+    }
+    const data = doc.data();
+    if (data && data.userId && !data.id) data.id = id;
+    return data as OnboardingData;
   }
-
   async saveOnboardingData(data: InsertOnboardingData): Promise<OnboardingData> {
-    const id = this.currentOnboardingId++;
-    const onboarding: OnboardingData = {
-      ...data,
-      id,
-      symptoms: data.symptoms as string[],
-      goals: data.goals as string[] || null,
-      lifestyle: data.lifestyle as Record<string, any> || null,
-      completedAt: new Date(),
-    };
-    this.onboardingData.set(data.userId, onboarding);
-    return onboarding;
+    const id = typeof data.userId === 'string' ? Number(data.userId) : data.userId;
+    console.log('[FirestoreStorage] saveOnboardingData for userId:', id, 'Payload:', data);
+    await db.collection("onboarding").doc(String(id)).set(data, { merge: true });
+    const doc = await db.collection("onboarding").doc(String(id)).get();
+    const result = doc.data() || {};
+    if (!result.id) result.id = id;
+    return result as OnboardingData;
   }
 
+  // Chat messages
   async getChatHistory(userId: number): Promise<ChatMessage[]> {
-    return this.chatMessages.get(userId) || [];
+    const id = typeof userId === 'string' ? Number(userId) : userId;
+    console.log('[FirestoreStorage] getChatHistory for userId:', id);
+    const snapshot = await db.collection("chatMessages")
+      .where("userId", "==", id)
+      .orderBy("createdAt", "asc")
+      .get();
+    return snapshot.docs.map((doc, idx) => {
+      const data = doc.data();
+      if (!data.id) data.id = idx + 1;
+      return data as ChatMessage;
+    });
   }
-
   async saveChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
-    const id = this.currentChatId++;
-    const chatMessage: ChatMessage = {
+    const id = typeof message.userId === 'string' ? Number(message.userId) : message.userId;
+    console.log('[FirestoreStorage] saveChatMessage for userId:', id, 'Payload:', message);
+    const docRef = await db.collection("chatMessages").add({
       ...message,
-      id,
-      ingredients: (message.ingredients as any) || null,
-      createdAt: new Date(),
-    };
-    
-    const userMessages = this.chatMessages.get(message.userId) || [];
-    userMessages.push(chatMessage);
-    this.chatMessages.set(message.userId, userMessages);
-    
-    return chatMessage;
+      userId: id,
+      createdAt: new Date()
+    });
+    const doc = await docRef.get();
+    const data = doc.data() || {};
+    if (!data.id) data.id = doc.id;
+    return data as ChatMessage;
   }
-
   async clearChatHistory(userId: number): Promise<void> {
-    this.chatMessages.set(userId, []);
+    const snapshot = await db.collection("chatMessages").where("userId", "==", userId).get();
+    const batch = db.batch();
+    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
   }
 
-  // Daily meal plan methods
+  // Daily meal plans
   async getDailyMealPlan(userId: number, date: string): Promise<DailyMealPlan | undefined> {
-    const key = `${userId}-${date}`;
-    return this.dailyMealPlans.get(key);
+    throw new Error('Not implemented');
   }
-
   async saveDailyMealPlan(plan: InsertDailyMealPlan): Promise<DailyMealPlan> {
-    const id = this.currentMealPlanId++;
-    const mealPlan: DailyMealPlan = {
-      ...plan,
-      id,
-      createdAt: new Date()
-    };
-    const key = `${plan.userId}-${plan.date}`;
-    this.dailyMealPlans.set(key, mealPlan);
-    return mealPlan;
+    throw new Error('Not implemented');
   }
-
-  // Daily feedback methods
+  
+  // Daily feedback
   async getDailyFeedback(userId: number, date: string): Promise<DailyFeedback | undefined> {
-    const key = `${userId}-${date}`;
-    return this.dailyFeedback.get(key);
+    throw new Error('Not implemented');
   }
-
   async saveDailyFeedback(feedback: InsertDailyFeedback): Promise<DailyFeedback> {
-    const id = this.currentFeedbackId++;
-    const dailyFeedback: DailyFeedback = {
-      ...feedback,
-      id,
-      createdAt: new Date()
-    };
-    const key = `${feedback.userId}-${feedback.date}`;
-    this.dailyFeedback.set(key, dailyFeedback);
-    return dailyFeedback;
+    throw new Error('Not implemented');
   }
-
-  // Progress tracking methods
+  
+  // Progress tracking
   async getProgressTracking(userId: number, date: string): Promise<ProgressTracking | undefined> {
-    const key = `${userId}-${date}`;
-    return this.progressTracking.get(key);
+    throw new Error('Not implemented');
   }
-
   async saveProgressTracking(progress: InsertProgressTracking): Promise<ProgressTracking> {
-    const id = this.currentProgressId++;
-    const progressData: ProgressTracking = {
-      ...progress,
-      id,
-      createdAt: new Date()
-    };
-    const key = `${progress.userId}-${progress.date}`;
-    this.progressTracking.set(key, progressData);
-    return progressData;
+    throw new Error('Not implemented');
   }
-
   async getUserProgressHistory(userId: number, days: number): Promise<ProgressTracking[]> {
-    const result: ProgressTracking[] = [];
-    const today = new Date();
-    
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      const key = `${userId}-${dateStr}`;
-      const progress = this.progressTracking.get(key);
-      if (progress) {
-        result.push(progress);
-      }
-    }
-    
-    return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    throw new Error('Not implemented');
   }
 }
 
-// Database storage implementation for user privacy and data persistence
-export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
-  }
-
-  async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.firebaseUid, firebaseUid));
-    return user || undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
-    return user;
-  }
-
-  async getOnboardingData(userId: number): Promise<OnboardingData | undefined> {
-    const [onboarding] = await db.select().from(onboardingData).where(eq(onboardingData.userId, userId));
-    return onboarding || undefined;
-  }
-
-  async saveOnboardingData(data: InsertOnboardingData): Promise<OnboardingData> {
-    // Check if onboarding data already exists for this user
-    const existing = await this.getOnboardingData(data.userId);
-    
-    if (existing) {
-      // Update existing record
-      const [onboarding] = await db
-        .update(onboardingData)
-        .set({
-          age: data.age,
-          gender: data.gender || 'Female',
-          height: data.height || '',
-          weight: data.weight || '',
-          diet: data.diet,
-          symptoms: data.symptoms,
-          goals: data.goals || [],
-          lifestyle: data.lifestyle || {},
-          medicalConditions: data.medicalConditions || [],
-          medications: data.medications || [],
-          allergies: data.allergies || [],
-          menstrualCycle: data.menstrualCycle || {},
-          stressLevel: data.stressLevel || '',
-          sleepHours: data.sleepHours || '',
-          exerciseLevel: data.exerciseLevel || '',
-          waterIntake: data.waterIntake || '',
-          completedAt: new Date()
-        })
-        .where(eq(onboardingData.userId, data.userId))
-        .returning();
-      return onboarding;
-    } else {
-      // Insert new record
-      const [onboarding] = await db
-        .insert(onboardingData)
-        .values({
-          ...data,
-          completedAt: new Date()
-        })
-        .returning();
-      return onboarding;
-    }
-  }
-
-  async getChatHistory(userId: number): Promise<ChatMessage[]> {
-    const messages = await db.select().from(chatMessages)
-      .where(eq(chatMessages.userId, userId))
-      .orderBy(chatMessages.createdAt);
-    return messages;
-  }
-
-  async saveChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
-    const [chatMessage] = await db
-      .insert(chatMessages)
-      .values({
-        message: message.message,
-        userId: message.userId,
-        response: message.response,
-        ingredients: message.ingredients
-      })
-      .returning();
-    return chatMessage;
-  }
-
-  async clearChatHistory(userId: number): Promise<void> {
-    await db.delete(chatMessages).where(eq(chatMessages.userId, userId));
-  }
-}
-
-// Using MemStorage for now while database schema is being finalized
-export const storage = new MemStorage();
+export const storage = new FirestoreStorage();

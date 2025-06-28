@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth } from '../lib/firebase';
 
 
 interface AuthContextType {
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const existingToken = localStorage.getItem('authToken');
         
         if (!hasSignedOut && !existingToken && mounted) {
-          // Only set demo token if user hasn't signed out and no token exists
+          // Always set demo token if user hasn't signed out and no token exists
           const demoToken = 'demo-token';
           localStorage.setItem('authToken', demoToken);
           setToken(demoToken);

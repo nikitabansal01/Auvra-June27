@@ -20,7 +20,8 @@ export interface DailyGuidelines {
   cycle_support?: string[];
 }
 
-export interface IngredientRecommendation {
+export interface FoodRecommendation {
+  type: 'food';
   name: string;
   description: string;
   emoji: string;
@@ -29,9 +30,31 @@ export interface IngredientRecommendation {
   healthy: string;
 }
 
+export interface MovementRecommendation {
+  type: 'movement';
+  name: string;
+  description: string;
+  emoji: string;
+  gentle: string;
+  fun: string;
+  strong: string;
+}
+
+export interface EmotionRecommendation {
+  type: 'emotion';
+  name: string;
+  description: string;
+  emoji: string;
+  chill: string;
+  creative: string;
+  heartfelt: string;
+}
+
+export type RecommendationCard = FoodRecommendation | MovementRecommendation | EmotionRecommendation;
+
 export interface ChatResponse {
   message: string;
-  ingredients: IngredientRecommendation[];
+  ingredients: RecommendationCard[];
 }
 
 export interface CheckInResponse {
@@ -52,6 +75,7 @@ export const users = pgTable("users", {
 export const onboardingData = pgTable("onboarding_data", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name"),
   age: text("age").notNull(),
   height: text("height"),
   weight: text("weight"),
@@ -65,6 +89,7 @@ export const onboardingData = pgTable("onboarding_data", {
   lastPeriodDate: text("last_period_date"),
   cycleLength: text("cycle_length"),
   periodLength: text("period_length"),
+  periodDescription: text("period_description"),
   irregularPeriods: boolean("irregular_periods").default(false),
   stressLevel: text("stress_level"),
   sleepHours: text("sleep_hours"),
@@ -78,7 +103,7 @@ export const chatMessages = pgTable("chat_messages", {
   userId: integer("user_id").notNull().references(() => users.id),
   message: text("message").notNull(),
   response: text("response").notNull(),
-  ingredients: jsonb("ingredients").$type<IngredientRecommendation[]>(),
+  ingredients: jsonb("ingredients").$type<RecommendationCard[]>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

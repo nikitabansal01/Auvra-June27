@@ -9,16 +9,19 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { IngredientCard } from '@/components/chat/IngredientCard';
+import { ExerciseCard } from '@/components/chat/ExerciseCard';
+import { MovementCard } from '@/components/chat/MovementCard';
+import { EmotionCard } from '@/components/chat/EmotionCard';
 import { X } from 'lucide-react';
 
 import { MealPlanGenerator } from '@/components/MealPlanGenerator';
-import type { ChatResponse, IngredientRecommendation } from '@shared/schema';
+import type { ChatResponse, RecommendationCard } from '@shared/schema';
 
 interface Message {
   id: string;
   type: 'user' | 'ai';
   content: string;
-  ingredients?: IngredientRecommendation[];
+  ingredients?: RecommendationCard[];
   timestamp: Date;
 }
 
@@ -31,32 +34,21 @@ interface UserProfile {
     age: string;
     diet: string;
     symptoms: string[];
+    lastPeriodDate?: string;
   };
 }
 
-// Daily tips array for frontend rotation
-const DAILY_TIPS = [
-  {
-    tip: "Magnesium-rich foods like spinach and almonds can help reduce PMS symptoms. Try adding them to your meals today!",
-    source: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5485207/"
-  },
-  {
-    tip: "Flax seeds are rich in lignans and omega-3s, supporting hormone balance during the menstrual cycle.",
-    source: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3074428/"
-  },
-  {
-    tip: "Ginger has anti-inflammatory properties that can help reduce menstrual cramps and nausea.",
-    source: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6341159/"
-  },
-  {
-    tip: "Vitamin D from sunlight or fortified foods supports hormonal balance and immune health.",
-    source: "https://ods.od.nih.gov/factsheets/VitaminD-Consumer/"
-  },
-  {
-    tip: "Fermented foods like yogurt and kimchi support gut health, which is linked to hormone regulation.",
-    source: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6723657/"
-  }
-];
+interface CurrentPhase {
+  phase: string;
+  phaseName: string;
+  description: string;
+  emoji: string;
+  color: string;
+  days: string;
+  daysSinceLastPeriod?: number;
+  isIrregular: boolean;
+  trackingMethod: 'lunar' | 'calendar';
+}
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -67,6 +59,7 @@ export default function Dashboard() {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [currentPhase, setCurrentPhase] = useState<CurrentPhase | null>(null);
 
 
   useEffect(() => {
@@ -80,6 +73,7 @@ export default function Dashboard() {
     if (token) {
       loadProfile();
       loadChatHistory();
+      loadCurrentPhase();
     }
   }, [token]);
 
@@ -127,6 +121,19 @@ export default function Dashboard() {
     }
   };
 
+  const loadCurrentPhase = async () => {
+    if (!token || loading) return;
+    try {
+      const response = await apiRequest('GET', '/api/health/current-phase');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentPhase(data.phase);
+      }
+    } catch (error) {
+      // Silently handle auth transitions - backend is working correctly
+    }
+  };
+
   const sendMessage = async () => {
     if (!inputMessage.trim() || !token) return;
 
@@ -143,7 +150,14 @@ export default function Dashboard() {
 
     try {
       const response = await apiRequest('POST', '/api/chat', {
-        message: inputMessage
+        message: inputMessage,
+        currentPhase: currentPhase ? {
+          phase: currentPhase.phase,
+          phaseName: currentPhase.phaseName,
+          daysSinceLastPeriod: currentPhase.daysSinceLastPeriod,
+          isIrregular: currentPhase.isIrregular,
+          trackingMethod: currentPhase.trackingMethod
+        } : undefined
       });
       const data: ChatResponse = await response.json();
 
@@ -183,6 +197,16 @@ export default function Dashboard() {
     }
   };
 
+  const getPhaseColorClasses = (color: string) => {
+    const colorMap: Record<string, { bg: string; border: string; text: string; badge: string }> = {
+      red: { bg: 'bg-red-50', border: 'border-red-400', text: 'text-red-700', badge: 'bg-red-100 text-red-700' },
+      green: { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-700', badge: 'bg-green-100 text-green-700' },
+      yellow: { bg: 'bg-yellow-50', border: 'border-yellow-400', text: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-700' },
+      purple: { bg: 'bg-purple-50', border: 'border-purple-400', text: 'text-purple-700', badge: 'bg-purple-100 text-purple-700' }
+    };
+    return colorMap[color] || colorMap.purple;
+  };
+
   const handleRemoveSymptom = async (symptomToRemove: string) => {
     if (!profile?.onboarding) return;
     const updatedSymptoms = profile.onboarding.symptoms.filter(s => s !== symptomToRemove);
@@ -219,7 +243,6 @@ export default function Dashboard() {
   const today = new Date();
   const startOfYear = new Date(today.getFullYear(), 0, 0);
   const dayOfYear = Math.floor((today.getTime() - startOfYear.getTime()) / 86400000);
-  const dailyTip = DAILY_TIPS[dayOfYear % DAILY_TIPS.length];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
@@ -304,38 +327,37 @@ export default function Dashboard() {
                 )}
 
                 {/* Chat Messages */}
-                {messages.map((message) => (
-                  <ChatMessage key={message.id} type={message.type}>
-                    <div className={message.type === 'user' ? 'text-white' : 'text-gray-800'}>
-                      <p className={message.ingredients ? 'mb-4' : ''}>{message.content}</p>
-                      
-                      {/* Ingredient Cards */}
-                      {message.ingredients && message.ingredients.length > 0 && (
-                        <div className="space-y-3">
-                          {message.ingredients.map((ingredient, index) => (
-                            <IngredientCard key={index} ingredient={ingredient} />
-                          ))}
-                          <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <p className="text-sm text-yellow-800">
-                              <i className="fas fa-info-circle mr-2"></i>
-                              Always consult with your healthcare provider before making significant dietary changes.
-                            </p>
-                          </div>
+                {messages.map((msg) => (
+                  <div key={msg.id} className="mb-4">
+                    <ChatMessage type={msg.type}>
+                      <div className="whitespace-pre-line text-base mb-2">{msg.content}</div>
+                      {msg.type === 'ai' && Array.isArray(msg.ingredients) && msg.ingredients.length > 0 && (
+                        <div className="space-y-4 mt-2">
+                          {msg.ingredients.map((item, idx) => {
+                            if (item.type === 'movement') {
+                              return <MovementCard key={idx} movement={item} />;
+                            } else if (item.type === 'emotion') {
+                              return <EmotionCard key={idx} emotion={item} />;
+                            } else if (item.type === 'food') {
+                              return <IngredientCard key={idx} ingredient={item} />;
+                            } else {
+                              // fallback for legacy/unknown
+                              return null;
+                            }
+                          })}
                         </div>
                       )}
-                    </div>
-                  </ChatMessage>
+                    </ChatMessage>
+                  </div>
                 ))}
 
                 {/* Typing Indicator */}
                 {isTyping && (
-                  <ChatMessage type="ai">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                  </ChatMessage>
+                  <div className="mb-4">
+                    <ChatMessage type="ai">
+                      <div className="whitespace-pre-line text-base mb-2">Winnie is typing...</div>
+                    </ChatMessage>
+                  </div>
                 )}
               </div>
 
@@ -458,16 +480,50 @@ export default function Dashboard() {
                       </div>
                     </div>
 
+                    {/* Current Menstrual Phase */}
+                    {currentPhase && (
+                      <div className={`${getPhaseColorClasses(currentPhase.color).bg} rounded-lg p-3 border-l-4 ${getPhaseColorClasses(currentPhase.color).border}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-gray-900 flex items-center">
+                            <span className="text-2xl mr-2">{currentPhase.emoji}</span>
+                            Current Phase
+                          </h4>
+                          <span className={`px-2 py-1 ${getPhaseColorClasses(currentPhase.color).badge} text-xs rounded-full font-medium`}>
+                            {currentPhase.trackingMethod === 'lunar' ? '🌙 Lunar' : '📅 Calendar'}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="font-semibold text-gray-800">{currentPhase.phaseName}</p>
+                          <p className="text-sm text-gray-600">{currentPhase.description}</p>
+                          {currentPhase.daysSinceLastPeriod !== undefined ? (
+                            <p className="text-xs text-gray-500">
+                              Day {currentPhase.daysSinceLastPeriod} of cycle ({currentPhase.days})
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-500">
+                              Using lunar cycle tracking for irregular periods
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Diet & Lifestyle */}
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="bg-green-50 rounded-lg p-2">
-                        <p className="text-green-600 font-medium">Diet Style</p>
-                        <p className="text-green-800 capitalize">{profile.onboarding.diet}</p>
-                      </div>
-                      <div className="bg-blue-50 rounded-lg p-2">
-                        <p className="text-blue-600 font-medium">Age Group</p>
-                        <p className="text-blue-800">{profile.onboarding.age} years</p>
-                      </div>
+                    <div className="bg-pink-50 rounded-lg p-3 text-sm">
+                      <p className="text-pink-600 font-medium">Last Period Date</p>
+                      <p className="text-pink-800">
+                        {profile.onboarding.lastPeriodDate ? 
+                          (() => {
+                            const date = new Date(profile.onboarding.lastPeriodDate);
+                            return date.toLocaleDateString('en-US', { 
+                              month: 'long', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            });
+                          })() 
+                          : 'Not set'
+                        }
+                      </p>
                     </div>
 
                     {/* Additional Health Info */}
@@ -545,24 +601,6 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             )}
-
-            {/* Health Tip */}
-            <Card className="shadow-xl border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                  <span className="mr-2">💡</span>
-                  Daily Tip
-                </h3>
-                <p className="text-sm text-gray-700 mb-4">
-                  {dailyTip.tip}
-                </p>
-                <Button variant="link" className="text-purple-600 p-0 h-auto font-medium" asChild>
-                  <a href={dailyTip.source} target="_blank" rel="noopener noreferrer">
-                    Learn more →
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>

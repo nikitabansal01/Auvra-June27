@@ -63,11 +63,35 @@ const SORTED_CUISINE_OPTIONS = [...CUISINE_OPTIONS].sort((a, b) => a.name.locale
 export function MealPlanGenerator({ userDiet }: MealPlanGeneratorProps) {
   const { toast } = useToast();
   const [selectedCuisine, setSelectedCuisine] = useState<string>('');
+  const [selectedDietPreference, setSelectedDietPreference] = useState<string>('');
+  const [selectedFoodAllergies, setSelectedFoodAllergies] = useState<string[]>([]);
   const [selectedDuration, setSelectedDuration] = useState<string>('');
   const [generatedPlan, setGeneratedPlan] = useState<MealPlanResponse | null>(null);
 
+  const DIET_OPTIONS = [
+    { id: 'omnivore', name: 'Omnivore', description: 'Eat both plant and animal foods' },
+    { id: 'vegetarian', name: 'Vegetarian', description: 'No meat, but includes dairy and eggs' },
+    { id: 'vegan', name: 'Vegan', description: 'Plant-based diet only' },
+    { id: 'pescatarian', name: 'Pescatarian', description: 'Fish and seafood, no other meat' },
+    { id: 'gluten-free', name: 'Gluten-Free', description: 'No gluten-containing grains' },
+    { id: 'dairy-free', name: 'Dairy-Free', description: 'No dairy products' },
+    { id: 'keto', name: 'Keto', description: 'Low-carb, high-fat diet' },
+    { id: 'paleo', name: 'Paleo', description: 'Whole foods, no processed items' }
+  ];
+
+  const ALLERGY_OPTIONS = [
+    { id: 'lactose', name: 'Lactose Intolerance', description: 'Dairy products' },
+    { id: 'gluten', name: 'Gluten Allergy', description: 'Wheat, barley, rye' },
+    { id: 'nuts', name: 'Nut Allergy', description: 'Tree nuts and peanuts' },
+    { id: 'shellfish', name: 'Shellfish Allergy', description: 'Crustaceans and mollusks' },
+    { id: 'eggs', name: 'Egg Allergy', description: 'Chicken eggs' },
+    { id: 'soy', name: 'Soy Allergy', description: 'Soybeans and soy products' },
+    { id: 'fish', name: 'Fish Allergy', description: 'Fish and fish products' },
+    { id: 'wheat', name: 'Wheat Allergy', description: 'Wheat and wheat products' }
+  ];
+
   const generateMealPlan = useMutation({
-    mutationFn: async ({ cuisinePreference, duration }: { cuisinePreference: string, duration: string }) => {
+    mutationFn: async ({ cuisinePreference, duration, dietPreference, foodAllergies }: { cuisinePreference: string, duration: string, dietPreference?: string, foodAllergies?: string[] }) => {
       let endpoint = '/api/nutrition/meal-plan';
       if (duration === 'weekly') {
         endpoint = '/api/nutrition/meal-plan/weekly';
@@ -81,7 +105,11 @@ export function MealPlanGenerator({ userDiet }: MealPlanGeneratorProps) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('authToken') || 'demo-token'}`
         },
-        body: JSON.stringify({ cuisinePreference })
+        body: JSON.stringify({ 
+          cuisinePreference,
+          ...(dietPreference && { dietPreference }),
+          ...(foodAllergies && foodAllergies.length > 0 && { foodAllergies })
+        })
       });
       
       if (!response.ok) {
@@ -172,7 +200,12 @@ export function MealPlanGenerator({ userDiet }: MealPlanGeneratorProps) {
       return;
     }
     
-    generateMealPlan.mutate({ cuisinePreference: selectedCuisine, duration: selectedDuration });
+    generateMealPlan.mutate({ 
+      cuisinePreference: selectedCuisine, 
+      duration: selectedDuration,
+      dietPreference: selectedDietPreference,
+      foodAllergies: selectedFoodAllergies
+    });
   };
 
   const handleDownloadPDF = () => {
@@ -228,6 +261,64 @@ export function MealPlanGenerator({ userDiet }: MealPlanGeneratorProps) {
             </Select>
           </div>
 
+          {/* Diet Preference Selection */}
+          <div className="space-y-2">
+            <label className="text-lg font-bold text-gray-800 dark:text-gray-100">Diet Preference (Optional)</label>
+            <Select value={selectedDietPreference} onValueChange={setSelectedDietPreference}>
+              <SelectTrigger className="h-12 text-base">
+                <SelectValue placeholder="Select your diet preference" />
+              </SelectTrigger>
+              <SelectContent>
+                {DIET_OPTIONS.map((diet) => (
+                  <SelectItem key={diet.id} value={diet.id}>
+                    <div className="flex items-center gap-3 py-1">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <ChefHat className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <div className="font-medium">{diet.name}</div>
+                        <div className="text-xs text-muted-foreground">{diet.description}</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Food Allergies Selection */}
+          <div className="space-y-2">
+            <label className="text-lg font-bold text-gray-800 dark:text-gray-100">Food Allergies (Optional)</label>
+            <div className="grid grid-cols-2 gap-3">
+              {ALLERGY_OPTIONS.map((allergy) => (
+                <button
+                  key={allergy.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedFoodAllergies(prev => 
+                      prev.includes(allergy.id) 
+                        ? prev.filter(id => id !== allergy.id)
+                        : [...prev, allergy.id]
+                    );
+                  }}
+                  className={`p-3 rounded-lg border transition-all text-left ${
+                    selectedFoodAllergies.includes(allergy.id)
+                      ? 'border-red-300 bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200'
+                      : 'border-gray-200 bg-white hover:border-gray-300 text-gray-700 dark:bg-gray-900 dark:text-gray-100'
+                  }`}
+                >
+                  <div className="font-medium text-sm">{allergy.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{allergy.description}</div>
+                </button>
+              ))}
+            </div>
+            {selectedFoodAllergies.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                Selected: {selectedFoodAllergies.map(id => ALLERGY_OPTIONS.find(a => a.id === id)?.name).join(', ')}
+              </div>
+            )}
+          </div>
+
           {/* Duration Selection (only 1 Day) */}
           <div className="space-y-2">
             <label className="text-lg font-bold text-gray-800 dark:text-gray-100">Select Plan Duration</label>
@@ -258,7 +349,12 @@ export function MealPlanGenerator({ userDiet }: MealPlanGeneratorProps) {
           {/* Generate Button */}
           <div className="pt-2">
             <Button
-              onClick={() => generateMealPlan.mutate({ cuisinePreference: selectedCuisine, duration: selectedDuration })}
+              onClick={() => generateMealPlan.mutate({ 
+                cuisinePreference: selectedCuisine, 
+                duration: selectedDuration,
+                dietPreference: selectedDietPreference,
+                foodAllergies: selectedFoodAllergies
+              })}
               disabled={!selectedCuisine || !selectedDuration || generateMealPlan.isPending}
               className="w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/20 rounded-xl"
             >
@@ -287,6 +383,9 @@ export function MealPlanGenerator({ userDiet }: MealPlanGeneratorProps) {
               </Badge>
               <Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
                 Dietary preferences
+              </Badge>
+              <Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
+                Food allergies
               </Badge>
               <Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
                 Cultural authenticity
