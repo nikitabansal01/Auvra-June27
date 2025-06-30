@@ -1351,7 +1351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(400).json({ error: 'age is required' });
           }
           if (!diet || diet.trim() === '') {
-            return res.status(400).json({ error: 'diet is required' });
+            return res.status(400).json({ error: 'diet is required. Please select your diet type in step 3.' });
           }
           if (!symptoms || !Array.isArray(symptoms) || symptoms.length === 0) {
             return res.status(400).json({ error: 'symptoms are required' });
