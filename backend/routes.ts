@@ -1050,6 +1050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function requireAuth(req: any, res: any, next: any) {
     try {
       const token = req.headers.authorization?.replace('Bearer ', '');
+      console.log('[AUTH] Token received:', token ? token.substring(0, 20) + '...' : 'none');
       
       if (!token) {
         return res.status(401).json({ error: 'No token provided' });
@@ -1094,18 +1095,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         next();
       } else {
         // Verify Firebase token
+        console.log('[AUTH] Verifying Firebase token...');
         const decodedToken = await firebaseAuth.verifyIdToken(token);
+        console.log('[AUTH] Firebase UID:', decodedToken.uid);
+        
         let user = await storage.getUserByFirebaseUid(decodedToken.uid);
+        console.log('[AUTH] Existing user found:', !!user);
         
         // If user doesn't exist, create them automatically
         if (!user) {
+          console.log('[AUTH] Creating new user...');
           user = await storage.createUser({
             firebaseUid: decodedToken.uid,
             email: decodedToken.email || '',
             name: decodedToken.name || 'User'
           });
+          console.log('[AUTH] New user created with ID:', user.id);
         }
         
+        console.log('[AUTH] Setting user in request:', user.id);
         req.user = user;
         next();
       }
@@ -1294,7 +1302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authHeader = req.headers.authorization || '';
       const token = authHeader.replace('Bearer ', '');
-      console.log('[ONBOARDING] Incoming token:', token);
+      console.log('[ONBOARDING] Incoming token:', token ? token.substring(0, 20) + '...' : 'none');
       console.log('[ONBOARDING] Incoming payload:', req.body);
       if (token === 'demo-token') {
         // Ensure demo user exists
@@ -1336,10 +1344,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let data;
         try {
           const { age, diet, symptoms } = req.body;
-          if (!age || !diet || !symptoms) {
-            return res.status(400).json({ error: 'age, diet, and symptoms are required' });
+          console.log('[ONBOARDING] Validating fields:', { age, diet, symptoms });
+          
+          // More flexible validation - check if fields exist and have values
+          if (!age || age.trim() === '') {
+            return res.status(400).json({ error: 'age is required' });
           }
+          if (!diet || diet.trim() === '') {
+            return res.status(400).json({ error: 'diet is required' });
+          }
+          if (!symptoms || !Array.isArray(symptoms) || symptoms.length === 0) {
+            return res.status(400).json({ error: 'symptoms are required' });
+          }
+          
           data = { ...req.body, userId: req.user.id };
+          console.log('[ONBOARDING] Processed data:', data);
         } catch (err) {
           let details = 'Unknown error';
           if (typeof err === 'object' && err !== null) {
