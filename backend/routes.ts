@@ -2086,4 +2086,6 @@ Generated with love for your health journey! 💖
   });
 
   return server;
-}
+}/ /   M a k e   d i e t   f i e l d   o p t i o n a l   f o r   b e t t e r   u s e r   e x p e r i e n c e  
+ / /   D i e t   v a l i d a t i o n   c o m m e n t e d   o u t   -   n o w   o p t i o n a l  
+ 
