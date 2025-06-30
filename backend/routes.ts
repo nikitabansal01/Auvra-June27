@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import cors from "cors";
 import { storage } from "./storage";
 import { type RecommendationCard, type ChatResponse, type User, type MovementRecommendation } from "@shared/schema";
 import { z } from "zod";
@@ -1009,6 +1010,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const server = createServer(app);
+
+  // CORS configuration
+  app.use(cors({
+    origin: [
+      'https://auvra-june27.vercel.app',
+      'https://auvra-june27-git-main-nikitabansal01.vercel.app',
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
 
   // Health check endpoint
   app.get('/', (req, res) => {
