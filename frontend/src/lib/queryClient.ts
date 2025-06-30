@@ -3,9 +3,19 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 // Get backend URL from environment variable
 const getBackendUrl = (path: string) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  
+  // Debug: Log environment variable
+  console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+  console.log('baseUrl:', baseUrl);
+  console.log('path:', path);
+  
   if (baseUrl && !path.startsWith('http')) {
-    return `${baseUrl}${path}`;
+    const fullUrl = `${baseUrl}${path}`;
+    console.log('Full URL:', fullUrl);
+    return fullUrl;
   }
+  
+  console.log('Returning path as is:', path);
   return path;
 };
 
@@ -33,6 +43,7 @@ export async function apiRequest(
   }
 
   const fullUrl = getBackendUrl(url);
+  console.log('apiRequest - fullUrl:', fullUrl);
 
   const res = await fetch(fullUrl, {
     method,
@@ -54,6 +65,7 @@ export const getQueryFn: <T>(options: {
     const token = localStorage.getItem('authToken') || 'demo-token';
     
     const fullUrl = getBackendUrl(queryKey[0] as string);
+    console.log('getQueryFn - fullUrl:', fullUrl);
     
     const res = await fetch(fullUrl, {
       headers: {
