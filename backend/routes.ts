@@ -1010,6 +1010,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const server = createServer(app);
 
+  // Health check endpoint
+  app.get('/', (req, res) => {
+    res.json({ status: 'OK', message: 'Server is running' });
+  });
+
   // Authentication middleware
   async function requireAuth(req: any, res: any, next: any) {
     try {
