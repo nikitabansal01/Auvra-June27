@@ -1350,9 +1350,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!age || age.trim() === '') {
             return res.status(400).json({ error: 'age is required' });
           }
-          if (!diet || diet.trim() === '') {
-            return res.status(400).json({ error: 'diet is required. Please select your diet type in step 3.' });
-          }
+          // diet 필드를 옵셔널로 변경 - 빈 값 허용
+          // if (!diet || diet.trim() === '') {
+          //   return res.status(400).json({ error: 'diet is required. Please select your diet type in step 3.' });
+          // }
           if (!symptoms || !Array.isArray(symptoms) || symptoms.length === 0) {
             return res.status(400).json({ error: 'symptoms are required' });
           }
@@ -2086,6 +2087,4 @@ Generated with love for your health journey! 💖
   });
 
   return server;
-}/ /   M a k e   d i e t   f i e l d   o p t i o n a l   f o r   b e t t e r   u s e r   e x p e r i e n c e  
- / /   D i e t   v a l i d a t i o n   c o m m e n t e d   o u t   -   n o w   o p t i o n a l  
- 
+}

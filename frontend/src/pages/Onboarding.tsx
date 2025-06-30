@@ -259,8 +259,7 @@ export default function Onboarding() {
                 onClick={handleNext}
                 disabled={isSubmitting || 
                   (currentStep === 1 && !formData.age) || 
-                  (currentStep === 2 && formData.symptoms.length === 0) || 
-                  (currentStep === 3 && !formData.diet)}
+                  (currentStep === 2 && formData.symptoms.length === 0)}
                 className="gradient-bg text-white"
               >
                 {isSubmitting ? (
