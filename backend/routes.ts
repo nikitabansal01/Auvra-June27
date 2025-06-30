@@ -18,6 +18,18 @@ interface AuthenticatedRequest extends Request {
   user: User;
 }
 
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+    console.log('Firebase Admin SDK initialized successfully');
+  } catch (error) {
+    console.error('Firebase Admin SDK initialization error:', error);
+  }
+}
+
 const firebaseAuth = admin.auth();
 
 // Enhanced demo response function with meal plan detection
