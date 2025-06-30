@@ -32,7 +32,21 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   // Get token from localStorage or context
-  const token = localStorage.getItem('authToken') || 'demo-token';
+  let token = localStorage.getItem('authToken') || 'demo-token';
+  
+  // If we have a Firebase user, get fresh token
+  if (token !== 'demo-token') {
+    try {
+      const { auth } = await import('../lib/firebase');
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        token = await currentUser.getIdToken();
+        localStorage.setItem('authToken', token);
+      }
+    } catch (error) {
+      console.error('Error getting fresh token:', error);
+    }
+  }
   
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${token}`,

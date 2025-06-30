@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "tsx index.ts",
     "build": "tsc && esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
@@ -28,7 +32,6 @@
     "openai": "^5.3.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
-    "puppeteer": "^24.10.0",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0"
@@ -47,6 +50,7 @@
     "typescript": "5.6.3"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.8"
+    "bufferutil": "^4.0.8",
+    "puppeteer": "^24.10.0"
   }
 }
