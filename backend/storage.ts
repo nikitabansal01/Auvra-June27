@@ -169,3 +169,11 @@ export class FirestoreStorage implements IStorage {
 }
 
 export const storage = new FirestoreStorage();
+
+const port = process.env.PORT || 5050;
+server.listen({
+  port,
+  host: "0.0.0.0"
+}, () => {
+  console.log(`serving on port ${port}`);
+});
