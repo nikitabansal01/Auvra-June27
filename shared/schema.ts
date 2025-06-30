@@ -1,6 +1,6 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import { z, ZodObject, ZodType, ZodTypeAny } from "zod";
 
 export interface MealItem {
   name: string;
@@ -209,18 +209,18 @@ export const insertSystemMetricsSchema = createInsertSchema(systemMetrics).omit(
 });
 
 export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertUser = typeof users.$inferInsert;
 export type OnboardingData = typeof onboardingData.$inferSelect;
-export type InsertOnboardingData = z.infer<typeof insertOnboardingSchema>;
+export type InsertOnboardingData = typeof onboardingData.$inferInsert;
 export type ChatMessage = typeof chatMessages.$inferSelect;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;
 export type DailyMealPlan = typeof dailyMealPlans.$inferSelect;
-export type InsertDailyMealPlan = z.infer<typeof insertDailyMealPlanSchema>;
+export type InsertDailyMealPlan = typeof dailyMealPlans.$inferInsert;
 export type DailyFeedback = typeof dailyFeedback.$inferSelect;
-export type InsertDailyFeedback = z.infer<typeof insertDailyFeedbackSchema>;
+export type InsertDailyFeedback = typeof dailyFeedback.$inferInsert;
 export type ProgressTracking = typeof progressTracking.$inferSelect;
-export type InsertProgressTracking = z.infer<typeof insertProgressTrackingSchema>;
+export type InsertProgressTracking = typeof progressTracking.$inferInsert;
 export type AdminUser = typeof adminUsers.$inferSelect;
-export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+export type InsertAdminUser = typeof adminUsers.$inferInsert;
 export type SystemMetrics = typeof systemMetrics.$inferSelect;
-export type InsertSystemMetrics = z.infer<typeof insertSystemMetricsSchema>;
+export type InsertSystemMetrics = typeof systemMetrics.$inferInsert;
