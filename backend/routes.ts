@@ -9,7 +9,7 @@ import { evaluationMetricsService } from './evaluation-metrics';
 import { ENHANCED_TRAINING_PROMPT, validateImplementationMethods } from './llm-training-guide';
 import { nutritionistService, type DailyMealPlan } from './nutritionist';
 import { pdfGeneratorService } from './pdf-generator';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import { adaptiveMealPlannerService } from './adaptive-meal-planner';
 import { adminAuthService } from './admin-auth';
 
