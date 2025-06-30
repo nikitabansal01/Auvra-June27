@@ -11,6 +11,7 @@ import { ENHANCED_TRAINING_PROMPT, validateImplementationMethods } from './llm-t
 import { nutritionistService, type DailyMealPlan } from './nutritionist';
 import { pdfGeneratorService } from './pdf-generator';
 import admin from 'firebase-admin';
+import { getApps } from "firebase-admin/app";
 import { adaptiveMealPlannerService } from './adaptive-meal-planner';
 import { adminAuthService } from './admin-auth';
 
@@ -18,11 +19,15 @@ interface AuthenticatedRequest extends Request {
   user: User;
 }
 
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
+// Initialize Firebase Admin SDK (latest version)
+if (!getApps().length) {
   try {
     admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      }),
     });
     console.log('Firebase Admin SDK initialized successfully');
   } catch (error) {
