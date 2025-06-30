@@ -1,5 +1,6 @@
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 // Debug: Log all available environment variables
 console.log('All Vite Environment Variables:', import.meta.env);
@@ -13,6 +14,7 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 console.log('Firebase Config Values:', {
@@ -22,6 +24,7 @@ console.log('Firebase Config Values:', {
   storageBucket: firebaseConfig.storageBucket ? 'SET' : 'MISSING',
   messagingSenderId: firebaseConfig.messagingSenderId ? 'SET' : 'MISSING',
   appId: firebaseConfig.appId ? 'SET' : 'MISSING',
+  measurementId: firebaseConfig.measurementId ? 'SET' : 'MISSING'
 });
 
 console.log('Firebase Config Object:', {
@@ -36,16 +39,17 @@ if (missingFields.length > 0) {
   console.error('Missing required Firebase configuration fields:', missingFields);
 }
 
-// Prevent duplicate app initialization
-let app;
-try {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  console.log('Firebase app initialized successfully');
-} catch (error) {
-  console.error('Error initializing Firebase:', error);
-  throw error;
-}
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
+// Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
+
+// Initialize Cloud Firestore and get a reference to the service
+export const db = getFirestore(app);
+
+// Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
-export default app;
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});

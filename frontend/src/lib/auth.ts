@@ -8,6 +8,15 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "./firebase";
 
+// Get backend URL from environment variable
+const getBackendUrl = (path: string) => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  if (baseUrl && !path.startsWith('http')) {
+    return `${baseUrl}${path}`;
+  }
+  return path;
+};
+
 export async function signUpWithEmail(email: string, password: string, displayName: string) {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password);
@@ -68,7 +77,8 @@ export async function signOutUser() {
     if (token && token !== 'demo-token') {
       try {
         console.log("Calling server logout endpoint...");
-        const response = await fetch('/api/auth/logout', {
+        const logoutUrl = getBackendUrl('/api/auth/logout');
+        const response = await fetch(logoutUrl, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

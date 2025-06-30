@@ -1,5 +1,14 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// Get backend URL from environment variable
+const getBackendUrl = (path: string) => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  if (baseUrl && !path.startsWith('http')) {
+    return `${baseUrl}${path}`;
+  }
+  return path;
+};
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -23,7 +32,9 @@ export async function apiRequest(
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(url, {
+  const fullUrl = getBackendUrl(url);
+
+  const res = await fetch(fullUrl, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
@@ -42,7 +53,9 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const token = localStorage.getItem('authToken') || 'demo-token';
     
-    const res = await fetch(queryKey[0] as string, {
+    const fullUrl = getBackendUrl(queryKey[0] as string);
+    
+    const res = await fetch(fullUrl, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
