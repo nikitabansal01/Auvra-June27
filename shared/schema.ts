@@ -1,5 +1,3 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z, ZodObject, ZodType, ZodTypeAny } from "zod";
 
 export interface MealItem {
@@ -63,164 +61,197 @@ export interface CheckInResponse {
   adaptiveRecommendations?: string[];
 }
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  firebaseUid: text("firebase_uid").notNull().unique(),
-  email: text("email").notNull(),
-  name: text("name").notNull(),
-  profilePicture: text("profile_picture"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+// Firestore용 타입 정의
+export interface User {
+  id: number;
+  firebaseUid: string;
+  email: string;
+  name: string;
+  profilePicture?: string;
+  createdAt: Date;
+}
 
-export const onboardingData = pgTable("onboarding_data", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  name: text("name"),
-  age: text("age").notNull(),
-  height: text("height"),
-  weight: text("weight"),
-  diet: text("diet").notNull(),
-  symptoms: jsonb("symptoms").notNull().$type<string[]>(),
-  goals: jsonb("goals").$type<string[]>(),
-  lifestyle: jsonb("lifestyle").$type<Record<string, any>>(),
-  medicalConditions: jsonb("medical_conditions").$type<string[]>(),
-  medications: jsonb("medications").$type<string[]>(),
-  allergies: jsonb("allergies").$type<string[]>(),
-  lastPeriodDate: text("last_period_date"),
-  cycleLength: text("cycle_length"),
-  periodLength: text("period_length"),
-  periodDescription: text("period_description"),
-  irregularPeriods: boolean("irregular_periods").default(false),
-  stressLevel: text("stress_level"),
-  sleepHours: text("sleep_hours"),
-  exerciseLevel: text("exercise_level"),
-  waterIntake: text("water_intake"),
-  completedAt: timestamp("completed_at").defaultNow().notNull(),
-});
+export interface InsertUser {
+  firebaseUid: string;
+  email: string;
+  name: string;
+  profilePicture?: string;
+}
 
-export const chatMessages = pgTable("chat_messages", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  message: text("message").notNull(),
-  response: text("response").notNull(),
-  ingredients: jsonb("ingredients").$type<RecommendationCard[]>(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface OnboardingData {
+  id: number;
+  userId: number;
+  name?: string;
+  age: string;
+  height?: string;
+  weight?: string;
+  diet: string;
+  symptoms: string[];
+  goals?: string[];
+  lifestyle?: Record<string, any>;
+  medicalConditions?: string[];
+  medications?: string[];
+  allergies?: string[];
+  lastPeriodDate?: string;
+  cycleLength?: string;
+  periodLength?: string;
+  periodDescription?: string;
+  irregularPeriods?: boolean;
+  stressLevel?: string;
+  sleepHours?: string;
+  exerciseLevel?: string;
+  waterIntake?: string;
+  completedAt: Date;
+}
 
-export const dailyMealPlans = pgTable("daily_meal_plans", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  date: text("date").notNull(), // YYYY-MM-DD format
-  menstrualPhase: text("menstrual_phase").notNull(),
-  breakfast: jsonb("breakfast").$type<MealItem>().notNull(),
-  lunch: jsonb("lunch").$type<MealItem>().notNull(),
-  dinner: jsonb("dinner").$type<MealItem>().notNull(),
-  snacks: jsonb("snacks").$type<MealItem[]>().notNull(),
-  dailyGuidelines: jsonb("daily_guidelines").$type<DailyGuidelines>().notNull(),
-  shoppingList: jsonb("shopping_list").$type<Record<string, string[]>>(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface InsertOnboardingData {
+  userId: number;
+  name?: string;
+  age: string;
+  height?: string;
+  weight?: string;
+  diet: string;
+  symptoms: string[];
+  goals?: string[];
+  lifestyle?: Record<string, any>;
+  medicalConditions?: string[];
+  medications?: string[];
+  allergies?: string[];
+  lastPeriodDate?: string;
+  cycleLength?: string;
+  periodLength?: string;
+  periodDescription?: string;
+  irregularPeriods?: boolean;
+  stressLevel?: string;
+  sleepHours?: string;
+  exerciseLevel?: string;
+  waterIntake?: string;
+}
 
-export const dailyFeedback = pgTable("daily_feedback", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  mealPlanId: integer("meal_plan_id").notNull().references(() => dailyMealPlans.id),
-  date: text("date").notNull(), // YYYY-MM-DD format
-  followedPlan: boolean("followed_plan"),
-  enjoyedMeals: jsonb("enjoyed_meals").$type<string[]>(), // ['breakfast', 'lunch', 'dinner']
-  dislikedMeals: jsonb("disliked_meals").$type<string[]>(),
-  symptomsImprovement: jsonb("symptoms_improvement").$type<Record<string, number>>(), // symptom -> rating 1-5
-  energyLevel: integer("energy_level"), // 1-5 scale
-  digestiveHealth: integer("digestive_health"), // 1-5 scale
-  moodRating: integer("mood_rating"), // 1-5 scale
-  feedback: text("feedback"), // Free text feedback
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface ChatMessage {
+  id: string;
+  userId: number;
+  message: string;
+  response: string;
+  ingredients?: RecommendationCard[];
+  createdAt: Date;
+}
 
-export const progressTracking = pgTable("progress_tracking", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  date: text("date").notNull(), // YYYY-MM-DD format
-  symptomsSeverity: jsonb("symptoms_severity").$type<Record<string, number>>(), // symptom -> severity 1-5
-  menstrualPhase: text("menstrual_phase").notNull(),
-  overallWellbeing: integer("overall_wellbeing"), // 1-5 scale
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface InsertChatMessage {
+  userId: number;
+  message: string;
+  response: string;
+  ingredients?: RecommendationCard[];
+}
 
-export const adminUsers = pgTable("admin_users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  email: text("email").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface DailyMealPlan {
+  id: number;
+  userId: number;
+  date: string;
+  menstrualPhase: string;
+  breakfast: MealItem;
+  lunch: MealItem;
+  dinner: MealItem;
+  snacks: MealItem[];
+  dailyGuidelines: DailyGuidelines;
+  shoppingList?: Record<string, string[]>;
+  createdAt: Date;
+}
 
-export const systemMetrics = pgTable("system_metrics", {
-  id: serial("id").primaryKey(),
-  date: text("date").notNull(), // YYYY-MM-DD format
-  totalUsers: integer("total_users").notNull(),
-  activeUsers: integer("active_users").notNull(),
-  totalMealPlans: integer("total_meal_plans").notNull(),
-  totalChatMessages: integer("total_chat_messages").notNull(),
-  avgUserSatisfaction: integer("avg_user_satisfaction"),
-  systemHealth: jsonb("system_health").$type<Record<string, any>>(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface InsertDailyMealPlan {
+  userId: number;
+  date: string;
+  menstrualPhase: string;
+  breakfast: MealItem;
+  lunch: MealItem;
+  dinner: MealItem;
+  snacks: MealItem[];
+  dailyGuidelines: DailyGuidelines;
+  shoppingList?: Record<string, string[]>;
+}
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-});
+export interface DailyFeedback {
+  id: number;
+  userId: number;
+  mealPlanId: number;
+  date: string;
+  followedPlan?: boolean;
+  enjoyedMeals?: string[];
+  dislikedMeals?: string[];
+  symptomsImprovement?: Record<string, number>;
+  energyLevel?: number;
+  digestiveHealth?: number;
+  moodRating?: number;
+  feedback?: string;
+  createdAt: Date;
+}
 
-export const insertOnboardingSchema = createInsertSchema(onboardingData).omit({
-  id: true,
-  completedAt: true,
-});
+export interface InsertDailyFeedback {
+  userId: number;
+  mealPlanId: number;
+  date: string;
+  followedPlan?: boolean;
+  enjoyedMeals?: string[];
+  dislikedMeals?: string[];
+  symptomsImprovement?: Record<string, number>;
+  energyLevel?: number;
+  digestiveHealth?: number;
+  moodRating?: number;
+  feedback?: string;
+}
 
-export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
-  id: true,
-  createdAt: true,
-});
+export interface ProgressTracking {
+  id: number;
+  userId: number;
+  date: string;
+  symptomsSeverity?: Record<string, number>;
+  menstrualPhase: string;
+  overallWellbeing?: number;
+  notes?: string;
+  createdAt: Date;
+}
 
-export const insertDailyMealPlanSchema = createInsertSchema(dailyMealPlans).omit({
-  id: true,
-  createdAt: true,
-});
+export interface InsertProgressTracking {
+  userId: number;
+  date: string;
+  symptomsSeverity?: Record<string, number>;
+  menstrualPhase: string;
+  overallWellbeing?: number;
+  notes?: string;
+}
 
-export const insertDailyFeedbackSchema = createInsertSchema(dailyFeedback).omit({
-  id: true,
-  createdAt: true,
-});
+export interface AdminUser {
+  id: number;
+  username: string;
+  passwordHash: string;
+  email: string;
+  createdAt: Date;
+}
 
-export const insertProgressTrackingSchema = createInsertSchema(progressTracking).omit({
-  id: true,
-  createdAt: true,
-});
+export interface InsertAdminUser {
+  username: string;
+  passwordHash: string;
+  email: string;
+}
 
-export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
-  id: true,
-  createdAt: true,
-});
+export interface SystemMetrics {
+  id: number;
+  date: string;
+  totalUsers: number;
+  activeUsers: number;
+  totalMealPlans: number;
+  totalChatMessages: number;
+  avgUserSatisfaction?: number;
+  systemHealth?: Record<string, any>;
+  createdAt: Date;
+}
 
-export const insertSystemMetricsSchema = createInsertSchema(systemMetrics).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-export type OnboardingData = typeof onboardingData.$inferSelect;
-export type InsertOnboardingData = typeof onboardingData.$inferInsert;
-export type ChatMessage = typeof chatMessages.$inferSelect;
-export type InsertChatMessage = typeof chatMessages.$inferInsert;
-export type DailyMealPlan = typeof dailyMealPlans.$inferSelect;
-export type InsertDailyMealPlan = typeof dailyMealPlans.$inferInsert;
-export type DailyFeedback = typeof dailyFeedback.$inferSelect;
-export type InsertDailyFeedback = typeof dailyFeedback.$inferInsert;
-export type ProgressTracking = typeof progressTracking.$inferSelect;
-export type InsertProgressTracking = typeof progressTracking.$inferInsert;
-export type AdminUser = typeof adminUsers.$inferSelect;
-export type InsertAdminUser = typeof adminUsers.$inferInsert;
-export type SystemMetrics = typeof systemMetrics.$inferSelect;
-export type InsertSystemMetrics = typeof systemMetrics.$inferInsert;
+export interface InsertSystemMetrics {
+  date: string;
+  totalUsers: number;
+  activeUsers: number;
+  totalMealPlans: number;
+  totalChatMessages: number;
+  avgUserSatisfaction?: number;
+  systemHealth?: Record<string, any>;
+} 

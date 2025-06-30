@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertOnboardingSchema, insertChatMessageSchema, type RecommendationCard, type ChatResponse, type User, type MovementRecommendation } from "@shared/schema";
+import { type RecommendationCard, type ChatResponse, type User, type MovementRecommendation } from "@shared/schema";
 import { z } from "zod";
 import OpenAI from 'openai';
 import { researchService } from './research';
@@ -1083,7 +1083,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/auth/register', async (req: Request, res: Response) => {
     try {
-      const { firebaseUid, email, name } = insertUserSchema.parse(req.body);
+      const { firebaseUid, email, name } = req.body;
+      if (!firebaseUid || !email || !name) {
+        return res.status(400).json({ error: 'firebaseUid, email, and name are required' });
+      }
       
       let user = await storage.getUserByFirebaseUid(firebaseUid);
       
@@ -1296,10 +1299,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       requireAuth(req, res, async () => {
         let data;
         try {
-          data = insertOnboardingSchema.parse({
-            ...req.body,
-            userId: req.user.id
-          });
+          const { age, diet, symptoms } = req.body;
+          if (!age || !diet || !symptoms) {
+            return res.status(400).json({ error: 'age, diet, and symptoms are required' });
+          }
+          data = { ...req.body, userId: req.user.id };
         } catch (err) {
           let details = 'Unknown error';
           if (typeof err === 'object' && err !== null) {
