@@ -44,6 +44,8 @@ export async function apiRequest(
 
   const fullUrl = getBackendUrl(url);
   console.log('apiRequest - fullUrl:', fullUrl);
+  console.log('apiRequest - token:', token);
+  console.log('apiRequest - headers:', headers);
 
   const res = await fetch(fullUrl, {
     method,
@@ -51,6 +53,9 @@ export async function apiRequest(
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
+
+  console.log('apiRequest - response status:', res.status);
+  console.log('apiRequest - response headers:', res.headers);
 
   await throwIfResNotOk(res);
   return res;
