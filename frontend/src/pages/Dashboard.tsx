@@ -254,7 +254,7 @@ export default function Dashboard() {
               <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mr-3">
                 <i className="fas fa-heart text-white"></i>
               </div>
-              <h1 className="text-xl font-bold text-gray-900">Winnie</h1>
+              <h1 className="text-xl font-bold text-gray-900">Auvra</h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
@@ -295,7 +295,7 @@ export default function Dashboard() {
                     <i className="fas fa-heart text-white"></i>
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Chat with Winnie</CardTitle>
+                    <CardTitle className="text-lg">Chat with Auvra</CardTitle>
                     <p className="text-sm text-gray-500">Your AI health coach</p>
                   </div>
                   <div className="flex-1"></div>
@@ -313,7 +313,7 @@ export default function Dashboard() {
                 {messages.length === 0 && (
                   <ChatMessage type="ai">
                     <p className="text-gray-800">
-                      Hi {profile?.user.name}! 👋 I'm Winnie, your personal health coach. 
+                      Hi {profile?.user.name}! 👋 I'm Auvra, your personal health coach. 
                       {profile?.onboarding && (
                         <>
                           {' '}Based on your profile, I can help you with {profile.onboarding.symptoms.join(', ').toLowerCase()} and provide 
@@ -355,7 +355,7 @@ export default function Dashboard() {
                 {isTyping && (
                   <div className="mb-4">
                     <ChatMessage type="ai">
-                      <div className="whitespace-pre-line text-base mb-2">Winnie is typing...</div>
+                      <div className="whitespace-pre-line text-base mb-2">Auvra is typing...</div>
                     </ChatMessage>
                   </div>
                 )}

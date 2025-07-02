@@ -158,7 +158,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mb-6 shadow-lg">
             <i className="fas fa-heart text-white text-2xl"></i>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Meet Winnie</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Meet Auvra</h1>
           <p className="text-lg text-gray-600">Your personal AI health coach for hormonal wellness</p>
         </div>
 

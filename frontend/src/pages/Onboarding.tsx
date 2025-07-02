@@ -236,7 +236,7 @@ export default function Onboarding() {
             {currentStep === 10 && (
               <div className="animate-slide-up text-center">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-2">You're all set!</h2>
-                <p className="text-gray-600 mb-6">Ready to start your personalized health journey with Winnie?</p>
+                <p className="text-gray-600 mb-6">Ready to start your personalized health journey with Auvra?</p>
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-8">
                   <i className="fas fa-sparkles text-purple-500 text-4xl mb-4"></i>
                   <p className="text-gray-700 font-medium">Your profile is complete and ready to provide personalized recommendations!</p>
