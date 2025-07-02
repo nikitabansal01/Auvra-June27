@@ -385,10 +385,7 @@ export default function Dashboard() {
                 <div className="flex flex-wrap gap-2 mt-4">
                   {[
                     'Create a meal plan for PCOS',
-                    'What foods help with bloating?', 
-                    'Mediterranean recipes for endometriosis',
-                    'How to improve sleep during PMS?',
-                    'Indian meal plan for stress management'
+                    'What foods help with bloating?'
                   ].map((suggestion) => (
                     <Button
                       key={suggestion}
