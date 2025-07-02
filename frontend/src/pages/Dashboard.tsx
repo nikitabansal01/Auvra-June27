@@ -258,7 +258,11 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                Hey, {(profile?.onboarding?.name || profile?.user.name || 'there')}!
+                {(() => {
+                  const name = profile?.onboarding?.name || profile?.user.name;
+                  if (name) return `Hey, ${name}!`;
+                  return 'Hey there!';
+                })()}
               </span>
               <Button
                 onClick={() => setLocation('/profile')}
@@ -313,7 +317,11 @@ export default function Dashboard() {
                 {messages.length === 0 && (
                   <ChatMessage type="ai">
                     <p className="text-gray-800">
-                      Hi {profile?.user.name}! 👋 I'm Auvra, your personal health coach. 
+                      {(() => {
+                        const name = profile?.onboarding?.name || profile?.user.name;
+                        if (name) return `Hi ${name}! 👋 I'm Auvra, your personal health coach.`;
+                        return `Hi! 👋 I'm Auvra, your personal health coach.`;
+                      })()}
                       {profile?.onboarding && (
                         <>
                           {' '}Based on your profile, I can help you with {profile.onboarding.symptoms.join(', ').toLowerCase()} and provide 
