@@ -258,7 +258,7 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                Hey, {profile?.user.name || 'there'}!
+                Hey, {(profile?.onboarding?.name || profile?.user.name || 'there')}!
               </span>
               <Button
                 onClick={() => setLocation('/profile')}
